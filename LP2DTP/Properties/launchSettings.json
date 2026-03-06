@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "LP2DTP (Package)": {
+      "commandName": "MsixPackage"
+    },
+    "LP2DTP (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}

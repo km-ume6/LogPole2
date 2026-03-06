@@ -1,0 +1,1194 @@
+{
+  "settings": {
+    "components": {
+      "code": true,
+      "binaries": false
+    },
+    "targetId": "net10.0",
+    "targetDisplayName": ".NETCoreApp,Version=v10.0"
+  },
+  "analysisStartTime": "2026-03-05T06:51:57.512153Z",
+  "analysisEndTime": "2026-03-05T06:51:58.3926011Z",
+  "privacyModeHelpUrl": "https://go.microsoft.com/fwlink/?linkid=2270980",
+  "stats": {
+    "summary": {
+      "projects": 2,
+      "issues": 3,
+      "incidents": 44,
+      "effort": 44
+    },
+    "charts": {
+      "severity": {
+        "Mandatory": 2,
+        "Optional": 0,
+        "Potential": 42,
+        "Information": 0
+      },
+      "category": {
+        "Project": 2,
+        "Api": 42
+      }
+    }
+  },
+  "projects": [
+    {
+      "path": "LP2DTP.Common\\LP2DTP.Common.csproj",
+      "startingProject": true,
+      "issues": 1,
+      "storyPoints": 1,
+      "properties": {
+        "appName": "LP2DTP.Common",
+        "projectKind": "ClassLibrary",
+        "frameworks": [
+          "net8.0"
+        ],
+        "languages": [
+          "C#"
+        ],
+        "tools": [
+          "MSBuild"
+        ],
+        "isSdkStyle": true,
+        "numberOfFiles": 3,
+        "numberOfCodeFiles": 3,
+        "linesTotal": 64,
+        "linesOfCode": 64,
+        "totalApiScanned": 22,
+        "minLinesOfCodeToChange": 0,
+        "maxLinesOfCodeToChange": 0
+      },
+      "ruleInstances": [
+        {
+          "incidentId": "e23cb244-ebcb-4e2e-a47d-be36051e50ae",
+          "ruleId": "Project.0002",
+          "projectPath": "LP2DTP.Common\\LP2DTP.Common.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "\u73FE\u5728\u306E\u30BF\u30FC\u30B2\u30C3\u30C8 \u30D5\u30EC\u30FC\u30E0\u30EF\u30FC\u30AF: net8.0\n\u63A8\u5968\u3055\u308C\u308B\u30BF\u30FC\u30B2\u30C3\u30C8 \u30D5\u30EC\u30FC\u30E0\u30EF\u30FC\u30AF: net10.0",
+              "protected": "\u73FE\u5728\u306E\u30BF\u30FC\u30B2\u30C3\u30C8 \u30D5\u30EC\u30FC\u30E0\u30EF\u30FC\u30AF: net8.0\n\u63A8\u5968\u3055\u308C\u308B\u30BF\u30FC\u30B2\u30C3\u30C8 \u30D5\u30EC\u30FC\u30E0\u30EF\u30FC\u30AF: net10.0"
+            },
+            "kind": "File",
+            "path": "LP2DTP.Common\\LP2DTP.Common.csproj",
+            "snippet": "\u73FE\u5728\u306E\u30BF\u30FC\u30B2\u30C3\u30C8 \u30D5\u30EC\u30FC\u30E0\u30EF\u30FC\u30AF: net8.0\n\u63A8\u5968\u3055\u308C\u308B\u30BF\u30FC\u30B2\u30C3\u30C8 \u30D5\u30EC\u30FC\u30E0\u30EF\u30FC\u30AF: net10.0",
+            "protectedSnippet": "\u73FE\u5728\u306E\u30BF\u30FC\u30B2\u30C3\u30C8 \u30D5\u30EC\u30FC\u30E0\u30EF\u30FC\u30AF: net8.0\n\u63A8\u5968\u3055\u308C\u308B\u30BF\u30FC\u30B2\u30C3\u30C8 \u30D5\u30EC\u30FC\u30E0\u30EF\u30FC\u30AF: net10.0",
+            "properties": {
+              "CurrentTargetFramework": "net8.0",
+              "RecommendedTargetFramework": "net10.0"
+            }
+          }
+        }
+      ],
+      "features": []
+    },
+    {
+      "path": "LP2DTP\\LP2DTP.csproj",
+      "startingProject": true,
+      "issues": 3,
+      "storyPoints": 43,
+      "properties": {
+        "appName": "LP2DTP",
+        "projectKind": "WinForms",
+        "frameworks": [
+          "net8.0-windows10.0.19041.0"
+        ],
+        "languages": [
+          "C#"
+        ],
+        "tools": [
+          "MSBuild"
+        ],
+        "isSdkStyle": true,
+        "numberOfFiles": 22,
+        "numberOfCodeFiles": 8,
+        "linesTotal": 1458,
+        "linesOfCode": 858,
+        "totalApiScanned": 2183,
+        "minLinesOfCodeToChange": 42,
+        "maxLinesOfCodeToChange": 42
+      },
+      "ruleInstances": [
+        {
+          "incidentId": "832bc007-2372-4778-9277-1bb244c7e6f8",
+          "ruleId": "Project.0002",
+          "projectPath": "LP2DTP\\LP2DTP.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "\u73FE\u5728\u306E\u30BF\u30FC\u30B2\u30C3\u30C8 \u30D5\u30EC\u30FC\u30E0\u30EF\u30FC\u30AF: net8.0-windows10.0.19041.0\n\u63A8\u5968\u3055\u308C\u308B\u30BF\u30FC\u30B2\u30C3\u30C8 \u30D5\u30EC\u30FC\u30E0\u30EF\u30FC\u30AF: net10.0-windows10.0.22000.0",
+              "protected": "\u73FE\u5728\u306E\u30BF\u30FC\u30B2\u30C3\u30C8 \u30D5\u30EC\u30FC\u30E0\u30EF\u30FC\u30AF: net8.0-windows10.0.19041.0\n\u63A8\u5968\u3055\u308C\u308B\u30BF\u30FC\u30B2\u30C3\u30C8 \u30D5\u30EC\u30FC\u30E0\u30EF\u30FC\u30AF: net10.0-windows10.0.22000.0"
+            },
+            "kind": "File",
+            "path": "LP2DTP\\LP2DTP.csproj",
+            "snippet": "\u73FE\u5728\u306E\u30BF\u30FC\u30B2\u30C3\u30C8 \u30D5\u30EC\u30FC\u30E0\u30EF\u30FC\u30AF: net8.0-windows10.0.19041.0\n\u63A8\u5968\u3055\u308C\u308B\u30BF\u30FC\u30B2\u30C3\u30C8 \u30D5\u30EC\u30FC\u30E0\u30EF\u30FC\u30AF: net10.0-windows10.0.22000.0",
+            "protectedSnippet": "\u73FE\u5728\u306E\u30BF\u30FC\u30B2\u30C3\u30C8 \u30D5\u30EC\u30FC\u30E0\u30EF\u30FC\u30AF: net8.0-windows10.0.19041.0\n\u63A8\u5968\u3055\u308C\u308B\u30BF\u30FC\u30B2\u30C3\u30C8 \u30D5\u30EC\u30FC\u30E0\u30EF\u30FC\u30AF: net10.0-windows10.0.22000.0",
+            "properties": {
+              "CurrentTargetFramework": "net8.0-windows10.0.19041.0",
+              "RecommendedTargetFramework": "net10.0-windows10.0.22000.0"
+            }
+          }
+        },
+        {
+          "incidentId": "7e003f1c-9531-42b6-961a-0460f31d4c6b",
+          "ruleId": "Api.0002",
+          "description": "API is available in package System.Runtime.WindowsRuntime, 4.7.0. Add package reference to System.Runtime.WindowsRuntime, 4.7.0",
+          "projectPath": "LP2DTP\\LP2DTP.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "var color = isError \r\n                ? new Windows.UI.Color { A = 255, R = 255, G = 0, B = 0 }\r\n                : new Windows.UI.Color { A = 255, R = 0, G = 128, B = 0 };",
+              "protected": "P:Windows.UI.Color.B"
+            },
+            "kind": "File",
+            "path": "LP2DTP\\VisaItemListContent.cs",
+            "snippet": "var color = isError \r\n                ? new Windows.UI.Color { A = 255, R = 255, G = 0, B = 0 }\r\n                : new Windows.UI.Color { A = 255, R = 0, G = 128, B = 0 };",
+            "protectedSnippet": "P:Windows.UI.Color.B",
+            "label": "P:Windows.UI.Color.B",
+            "properties": {
+              "PackageId": "System.Runtime.WindowsRuntime",
+              "PackageNewVersion": "4.7.0"
+            },
+            "line": 327,
+            "column": 12
+          }
+        },
+        {
+          "incidentId": "cc8974f8-9081-4f0c-a71d-e957e883b4d1",
+          "ruleId": "Api.0002",
+          "description": "API is available in package System.Runtime.WindowsRuntime, 4.7.0. Add package reference to System.Runtime.WindowsRuntime, 4.7.0",
+          "projectPath": "LP2DTP\\LP2DTP.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "var color = isError \r\n                ? new Windows.UI.Color { A = 255, R = 255, G = 0, B = 0 }\r\n                : new Windows.UI.Color { A = 255, R = 0, G = 128, B = 0 };",
+              "protected": "P:Windows.UI.Color.G"
+            },
+            "kind": "File",
+            "path": "LP2DTP\\VisaItemListContent.cs",
+            "snippet": "var color = isError \r\n                ? new Windows.UI.Color { A = 255, R = 255, G = 0, B = 0 }\r\n                : new Windows.UI.Color { A = 255, R = 0, G = 128, B = 0 };",
+            "protectedSnippet": "P:Windows.UI.Color.G",
+            "label": "P:Windows.UI.Color.G",
+            "properties": {
+              "PackageId": "System.Runtime.WindowsRuntime",
+              "PackageNewVersion": "4.7.0"
+            },
+            "line": 327,
+            "column": 12
+          }
+        },
+        {
+          "incidentId": "c3c24ad1-0592-4ee2-ad33-334c0c336050",
+          "ruleId": "Api.0002",
+          "description": "API is available in package System.Runtime.WindowsRuntime, 4.7.0. Add package reference to System.Runtime.WindowsRuntime, 4.7.0",
+          "projectPath": "LP2DTP\\LP2DTP.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "var color = isError \r\n                ? new Windows.UI.Color { A = 255, R = 255, G = 0, B = 0 }\r\n                : new Windows.UI.Color { A = 255, R = 0, G = 128, B = 0 };",
+              "protected": "P:Windows.UI.Color.R"
+            },
+            "kind": "File",
+            "path": "LP2DTP\\VisaItemListContent.cs",
+            "snippet": "var color = isError \r\n                ? new Windows.UI.Color { A = 255, R = 255, G = 0, B = 0 }\r\n                : new Windows.UI.Color { A = 255, R = 0, G = 128, B = 0 };",
+            "protectedSnippet": "P:Windows.UI.Color.R",
+            "label": "P:Windows.UI.Color.R",
+            "properties": {
+              "PackageId": "System.Runtime.WindowsRuntime",
+              "PackageNewVersion": "4.7.0"
+            },
+            "line": 327,
+            "column": 12
+          }
+        },
+        {
+          "incidentId": "60bef320-4b39-494b-92a1-957ff948169c",
+          "ruleId": "Api.0002",
+          "description": "API is available in package System.Runtime.WindowsRuntime, 4.7.0. Add package reference to System.Runtime.WindowsRuntime, 4.7.0",
+          "projectPath": "LP2DTP\\LP2DTP.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "var color = isError \r\n                ? new Windows.UI.Color { A = 255, R = 255, G = 0, B = 0 }\r\n                : new Windows.UI.Color { A = 255, R = 0, G = 128, B = 0 };",
+              "protected": "P:Windows.UI.Color.A"
+            },
+            "kind": "File",
+            "path": "LP2DTP\\VisaItemListContent.cs",
+            "snippet": "var color = isError \r\n                ? new Windows.UI.Color { A = 255, R = 255, G = 0, B = 0 }\r\n                : new Windows.UI.Color { A = 255, R = 0, G = 128, B = 0 };",
+            "protectedSnippet": "P:Windows.UI.Color.A",
+            "label": "P:Windows.UI.Color.A",
+            "properties": {
+              "PackageId": "System.Runtime.WindowsRuntime",
+              "PackageNewVersion": "4.7.0"
+            },
+            "line": 327,
+            "column": 12
+          }
+        },
+        {
+          "incidentId": "5b99edf6-4cb1-4ba8-9367-4b298b5e57de",
+          "ruleId": "Api.0002",
+          "description": "API is available in package System.Runtime.WindowsRuntime, 4.7.0. Add package reference to System.Runtime.WindowsRuntime, 4.7.0",
+          "projectPath": "LP2DTP\\LP2DTP.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "var color = isError \r\n                ? new Windows.UI.Color { A = 255, R = 255, G = 0, B = 0 }\r\n                : new Windows.UI.Color { A = 255, R = 0, G = 128, B = 0 };",
+              "protected": "T:Windows.UI.Color"
+            },
+            "kind": "File",
+            "path": "LP2DTP\\VisaItemListContent.cs",
+            "snippet": "var color = isError \r\n                ? new Windows.UI.Color { A = 255, R = 255, G = 0, B = 0 }\r\n                : new Windows.UI.Color { A = 255, R = 0, G = 128, B = 0 };",
+            "protectedSnippet": "T:Windows.UI.Color",
+            "label": "T:Windows.UI.Color",
+            "properties": {
+              "PackageId": "System.Runtime.WindowsRuntime",
+              "PackageNewVersion": "4.7.0"
+            },
+            "line": 327,
+            "column": 12
+          }
+        },
+        {
+          "incidentId": "87b709bd-9d65-4493-a5b8-dfb4b595ffb9",
+          "ruleId": "Api.0002",
+          "description": "API is available in package System.Runtime.WindowsRuntime, 4.7.0. Add package reference to System.Runtime.WindowsRuntime, 4.7.0",
+          "projectPath": "LP2DTP\\LP2DTP.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "var color = isError \r\n                ? new Windows.UI.Color { A = 255, R = 255, G = 0, B = 0 }\r\n                : new Windows.UI.Color { A = 255, R = 0, G = 128, B = 0 };",
+              "protected": "P:Windows.UI.Color.B"
+            },
+            "kind": "File",
+            "path": "LP2DTP\\VisaItemListContent.cs",
+            "snippet": "var color = isError \r\n                ? new Windows.UI.Color { A = 255, R = 255, G = 0, B = 0 }\r\n                : new Windows.UI.Color { A = 255, R = 0, G = 128, B = 0 };",
+            "protectedSnippet": "P:Windows.UI.Color.B",
+            "label": "P:Windows.UI.Color.B",
+            "properties": {
+              "PackageId": "System.Runtime.WindowsRuntime",
+              "PackageNewVersion": "4.7.0"
+            },
+            "line": 327,
+            "column": 12
+          }
+        },
+        {
+          "incidentId": "0e9e4649-fbe9-47be-a7eb-24d417c3bc88",
+          "ruleId": "Api.0002",
+          "description": "API is available in package System.Runtime.WindowsRuntime, 4.7.0. Add package reference to System.Runtime.WindowsRuntime, 4.7.0",
+          "projectPath": "LP2DTP\\LP2DTP.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "var color = isError \r\n                ? new Windows.UI.Color { A = 255, R = 255, G = 0, B = 0 }\r\n                : new Windows.UI.Color { A = 255, R = 0, G = 128, B = 0 };",
+              "protected": "P:Windows.UI.Color.G"
+            },
+            "kind": "File",
+            "path": "LP2DTP\\VisaItemListContent.cs",
+            "snippet": "var color = isError \r\n                ? new Windows.UI.Color { A = 255, R = 255, G = 0, B = 0 }\r\n                : new Windows.UI.Color { A = 255, R = 0, G = 128, B = 0 };",
+            "protectedSnippet": "P:Windows.UI.Color.G",
+            "label": "P:Windows.UI.Color.G",
+            "properties": {
+              "PackageId": "System.Runtime.WindowsRuntime",
+              "PackageNewVersion": "4.7.0"
+            },
+            "line": 327,
+            "column": 12
+          }
+        },
+        {
+          "incidentId": "3c635492-b59d-4a7f-93df-c8f928d07bf6",
+          "ruleId": "Api.0002",
+          "description": "API is available in package System.Runtime.WindowsRuntime, 4.7.0. Add package reference to System.Runtime.WindowsRuntime, 4.7.0",
+          "projectPath": "LP2DTP\\LP2DTP.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "var color = isError \r\n                ? new Windows.UI.Color { A = 255, R = 255, G = 0, B = 0 }\r\n                : new Windows.UI.Color { A = 255, R = 0, G = 128, B = 0 };",
+              "protected": "P:Windows.UI.Color.R"
+            },
+            "kind": "File",
+            "path": "LP2DTP\\VisaItemListContent.cs",
+            "snippet": "var color = isError \r\n                ? new Windows.UI.Color { A = 255, R = 255, G = 0, B = 0 }\r\n                : new Windows.UI.Color { A = 255, R = 0, G = 128, B = 0 };",
+            "protectedSnippet": "P:Windows.UI.Color.R",
+            "label": "P:Windows.UI.Color.R",
+            "properties": {
+              "PackageId": "System.Runtime.WindowsRuntime",
+              "PackageNewVersion": "4.7.0"
+            },
+            "line": 327,
+            "column": 12
+          }
+        },
+        {
+          "incidentId": "10e1f23a-d8f1-4e10-8cde-a24577ac5bc3",
+          "ruleId": "Api.0002",
+          "description": "API is available in package System.Runtime.WindowsRuntime, 4.7.0. Add package reference to System.Runtime.WindowsRuntime, 4.7.0",
+          "projectPath": "LP2DTP\\LP2DTP.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "var color = isError \r\n                ? new Windows.UI.Color { A = 255, R = 255, G = 0, B = 0 }\r\n                : new Windows.UI.Color { A = 255, R = 0, G = 128, B = 0 };",
+              "protected": "P:Windows.UI.Color.A"
+            },
+            "kind": "File",
+            "path": "LP2DTP\\VisaItemListContent.cs",
+            "snippet": "var color = isError \r\n                ? new Windows.UI.Color { A = 255, R = 255, G = 0, B = 0 }\r\n                : new Windows.UI.Color { A = 255, R = 0, G = 128, B = 0 };",
+            "protectedSnippet": "P:Windows.UI.Color.A",
+            "label": "P:Windows.UI.Color.A",
+            "properties": {
+              "PackageId": "System.Runtime.WindowsRuntime",
+              "PackageNewVersion": "4.7.0"
+            },
+            "line": 327,
+            "column": 12
+          }
+        },
+        {
+          "incidentId": "b4349159-c7fe-418e-ad08-095f2e9cfc10",
+          "ruleId": "Api.0002",
+          "description": "API is available in package System.Runtime.WindowsRuntime, 4.7.0. Add package reference to System.Runtime.WindowsRuntime, 4.7.0",
+          "projectPath": "LP2DTP\\LP2DTP.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "var color = isError \r\n                ? new Windows.UI.Color { A = 255, R = 255, G = 0, B = 0 }\r\n                : new Windows.UI.Color { A = 255, R = 0, G = 128, B = 0 };",
+              "protected": "T:Windows.UI.Color"
+            },
+            "kind": "File",
+            "path": "LP2DTP\\VisaItemListContent.cs",
+            "snippet": "var color = isError \r\n                ? new Windows.UI.Color { A = 255, R = 255, G = 0, B = 0 }\r\n                : new Windows.UI.Color { A = 255, R = 0, G = 128, B = 0 };",
+            "protectedSnippet": "T:Windows.UI.Color",
+            "label": "T:Windows.UI.Color",
+            "properties": {
+              "PackageId": "System.Runtime.WindowsRuntime",
+              "PackageNewVersion": "4.7.0"
+            },
+            "line": 327,
+            "column": 12
+          }
+        },
+        {
+          "incidentId": "82b318b4-be3c-4c7f-a9b1-369b548ef12c",
+          "ruleId": "Api.0002",
+          "description": "API is available in package System.Runtime.WindowsRuntime, 4.7.0. Add package reference to System.Runtime.WindowsRuntime, 4.7.0",
+          "projectPath": "LP2DTP\\LP2DTP.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "button.Background = new SolidColorBrush(new Windows.UI.Color { A = 255, R = 0, G = 128, B = 0 });",
+              "protected": "P:Windows.UI.Color.B"
+            },
+            "kind": "File",
+            "path": "LP2DTP\\VisaItemListContent.cs",
+            "snippet": "button.Background = new SolidColorBrush(new Windows.UI.Color { A = 255, R = 0, G = 128, B = 0 });",
+            "protectedSnippet": "P:Windows.UI.Color.B",
+            "label": "P:Windows.UI.Color.B",
+            "properties": {
+              "PackageId": "System.Runtime.WindowsRuntime",
+              "PackageNewVersion": "4.7.0"
+            },
+            "line": 227,
+            "column": 16
+          }
+        },
+        {
+          "incidentId": "5cc3a272-b4ba-49f7-af95-5e58c4ad2b2d",
+          "ruleId": "Api.0002",
+          "description": "API is available in package System.Runtime.WindowsRuntime, 4.7.0. Add package reference to System.Runtime.WindowsRuntime, 4.7.0",
+          "projectPath": "LP2DTP\\LP2DTP.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "button.Background = new SolidColorBrush(new Windows.UI.Color { A = 255, R = 0, G = 128, B = 0 });",
+              "protected": "P:Windows.UI.Color.G"
+            },
+            "kind": "File",
+            "path": "LP2DTP\\VisaItemListContent.cs",
+            "snippet": "button.Background = new SolidColorBrush(new Windows.UI.Color { A = 255, R = 0, G = 128, B = 0 });",
+            "protectedSnippet": "P:Windows.UI.Color.G",
+            "label": "P:Windows.UI.Color.G",
+            "properties": {
+              "PackageId": "System.Runtime.WindowsRuntime",
+              "PackageNewVersion": "4.7.0"
+            },
+            "line": 227,
+            "column": 16
+          }
+        },
+        {
+          "incidentId": "4969c667-9807-4d4d-990d-949c1c56d2a8",
+          "ruleId": "Api.0002",
+          "description": "API is available in package System.Runtime.WindowsRuntime, 4.7.0. Add package reference to System.Runtime.WindowsRuntime, 4.7.0",
+          "projectPath": "LP2DTP\\LP2DTP.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "button.Background = new SolidColorBrush(new Windows.UI.Color { A = 255, R = 0, G = 128, B = 0 });",
+              "protected": "P:Windows.UI.Color.R"
+            },
+            "kind": "File",
+            "path": "LP2DTP\\VisaItemListContent.cs",
+            "snippet": "button.Background = new SolidColorBrush(new Windows.UI.Color { A = 255, R = 0, G = 128, B = 0 });",
+            "protectedSnippet": "P:Windows.UI.Color.R",
+            "label": "P:Windows.UI.Color.R",
+            "properties": {
+              "PackageId": "System.Runtime.WindowsRuntime",
+              "PackageNewVersion": "4.7.0"
+            },
+            "line": 227,
+            "column": 16
+          }
+        },
+        {
+          "incidentId": "1d36084c-2e45-4cf9-8893-f585b88957aa",
+          "ruleId": "Api.0002",
+          "description": "API is available in package System.Runtime.WindowsRuntime, 4.7.0. Add package reference to System.Runtime.WindowsRuntime, 4.7.0",
+          "projectPath": "LP2DTP\\LP2DTP.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "button.Background = new SolidColorBrush(new Windows.UI.Color { A = 255, R = 0, G = 128, B = 0 });",
+              "protected": "P:Windows.UI.Color.A"
+            },
+            "kind": "File",
+            "path": "LP2DTP\\VisaItemListContent.cs",
+            "snippet": "button.Background = new SolidColorBrush(new Windows.UI.Color { A = 255, R = 0, G = 128, B = 0 });",
+            "protectedSnippet": "P:Windows.UI.Color.A",
+            "label": "P:Windows.UI.Color.A",
+            "properties": {
+              "PackageId": "System.Runtime.WindowsRuntime",
+              "PackageNewVersion": "4.7.0"
+            },
+            "line": 227,
+            "column": 16
+          }
+        },
+        {
+          "incidentId": "7923297b-d600-4780-84ae-b242b2bb0a0e",
+          "ruleId": "Api.0002",
+          "description": "API is available in package System.Runtime.WindowsRuntime, 4.7.0. Add package reference to System.Runtime.WindowsRuntime, 4.7.0",
+          "projectPath": "LP2DTP\\LP2DTP.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "button.Background = new SolidColorBrush(new Windows.UI.Color { A = 255, R = 0, G = 128, B = 0 });",
+              "protected": "T:Windows.UI.Color"
+            },
+            "kind": "File",
+            "path": "LP2DTP\\VisaItemListContent.cs",
+            "snippet": "button.Background = new SolidColorBrush(new Windows.UI.Color { A = 255, R = 0, G = 128, B = 0 });",
+            "protectedSnippet": "T:Windows.UI.Color",
+            "label": "T:Windows.UI.Color",
+            "properties": {
+              "PackageId": "System.Runtime.WindowsRuntime",
+              "PackageNewVersion": "4.7.0"
+            },
+            "line": 227,
+            "column": 16
+          }
+        },
+        {
+          "incidentId": "62efe6e8-d967-4833-85f3-06f229f41859",
+          "ruleId": "Api.0002",
+          "description": "API is available in package System.Runtime.WindowsRuntime, 4.7.0. Add package reference to System.Runtime.WindowsRuntime, 4.7.0",
+          "projectPath": "LP2DTP\\LP2DTP.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "var deleteButton = new Button\r\n            {\r\n                Content = \u0022Delete\u0022,\r\n                Margin = new Thickness(2),\r\n                Padding = new Thickness(8, 4, 8, 4),\r\n                Background = new SolidColorBrush(new Windows.UI.Color { A = 255, R = 244, G = 67, B = 54 })\r\n            };",
+              "protected": "P:Windows.UI.Color.B"
+            },
+            "kind": "File",
+            "path": "LP2DTP\\VisaItemListContent.cs",
+            "snippet": "var deleteButton = new Button\r\n            {\r\n                Content = \u0022Delete\u0022,\r\n                Margin = new Thickness(2),\r\n                Padding = new Thickness(8, 4, 8, 4),\r\n                Background = new SolidColorBrush(new Windows.UI.Color { A = 255, R = 244, G = 67, B = 54 })\r\n            };",
+            "protectedSnippet": "P:Windows.UI.Color.B",
+            "label": "P:Windows.UI.Color.B",
+            "properties": {
+              "PackageId": "System.Runtime.WindowsRuntime",
+              "PackageNewVersion": "4.7.0"
+            },
+            "line": 184,
+            "column": 12
+          }
+        },
+        {
+          "incidentId": "6e7b9814-77e4-47c1-aa0c-77a589077788",
+          "ruleId": "Api.0002",
+          "description": "API is available in package System.Runtime.WindowsRuntime, 4.7.0. Add package reference to System.Runtime.WindowsRuntime, 4.7.0",
+          "projectPath": "LP2DTP\\LP2DTP.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "var deleteButton = new Button\r\n            {\r\n                Content = \u0022Delete\u0022,\r\n                Margin = new Thickness(2),\r\n                Padding = new Thickness(8, 4, 8, 4),\r\n                Background = new SolidColorBrush(new Windows.UI.Color { A = 255, R = 244, G = 67, B = 54 })\r\n            };",
+              "protected": "P:Windows.UI.Color.G"
+            },
+            "kind": "File",
+            "path": "LP2DTP\\VisaItemListContent.cs",
+            "snippet": "var deleteButton = new Button\r\n            {\r\n                Content = \u0022Delete\u0022,\r\n                Margin = new Thickness(2),\r\n                Padding = new Thickness(8, 4, 8, 4),\r\n                Background = new SolidColorBrush(new Windows.UI.Color { A = 255, R = 244, G = 67, B = 54 })\r\n            };",
+            "protectedSnippet": "P:Windows.UI.Color.G",
+            "label": "P:Windows.UI.Color.G",
+            "properties": {
+              "PackageId": "System.Runtime.WindowsRuntime",
+              "PackageNewVersion": "4.7.0"
+            },
+            "line": 184,
+            "column": 12
+          }
+        },
+        {
+          "incidentId": "fd53436f-7adb-44ca-939a-4dac89df8b43",
+          "ruleId": "Api.0002",
+          "description": "API is available in package System.Runtime.WindowsRuntime, 4.7.0. Add package reference to System.Runtime.WindowsRuntime, 4.7.0",
+          "projectPath": "LP2DTP\\LP2DTP.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "var deleteButton = new Button\r\n            {\r\n                Content = \u0022Delete\u0022,\r\n                Margin = new Thickness(2),\r\n                Padding = new Thickness(8, 4, 8, 4),\r\n                Background = new SolidColorBrush(new Windows.UI.Color { A = 255, R = 244, G = 67, B = 54 })\r\n            };",
+              "protected": "P:Windows.UI.Color.R"
+            },
+            "kind": "File",
+            "path": "LP2DTP\\VisaItemListContent.cs",
+            "snippet": "var deleteButton = new Button\r\n            {\r\n                Content = \u0022Delete\u0022,\r\n                Margin = new Thickness(2),\r\n                Padding = new Thickness(8, 4, 8, 4),\r\n                Background = new SolidColorBrush(new Windows.UI.Color { A = 255, R = 244, G = 67, B = 54 })\r\n            };",
+            "protectedSnippet": "P:Windows.UI.Color.R",
+            "label": "P:Windows.UI.Color.R",
+            "properties": {
+              "PackageId": "System.Runtime.WindowsRuntime",
+              "PackageNewVersion": "4.7.0"
+            },
+            "line": 184,
+            "column": 12
+          }
+        },
+        {
+          "incidentId": "db8efc1c-7cd9-4935-846e-a0477f527609",
+          "ruleId": "Api.0002",
+          "description": "API is available in package System.Runtime.WindowsRuntime, 4.7.0. Add package reference to System.Runtime.WindowsRuntime, 4.7.0",
+          "projectPath": "LP2DTP\\LP2DTP.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "var deleteButton = new Button\r\n            {\r\n                Content = \u0022Delete\u0022,\r\n                Margin = new Thickness(2),\r\n                Padding = new Thickness(8, 4, 8, 4),\r\n                Background = new SolidColorBrush(new Windows.UI.Color { A = 255, R = 244, G = 67, B = 54 })\r\n            };",
+              "protected": "P:Windows.UI.Color.A"
+            },
+            "kind": "File",
+            "path": "LP2DTP\\VisaItemListContent.cs",
+            "snippet": "var deleteButton = new Button\r\n            {\r\n                Content = \u0022Delete\u0022,\r\n                Margin = new Thickness(2),\r\n                Padding = new Thickness(8, 4, 8, 4),\r\n                Background = new SolidColorBrush(new Windows.UI.Color { A = 255, R = 244, G = 67, B = 54 })\r\n            };",
+            "protectedSnippet": "P:Windows.UI.Color.A",
+            "label": "P:Windows.UI.Color.A",
+            "properties": {
+              "PackageId": "System.Runtime.WindowsRuntime",
+              "PackageNewVersion": "4.7.0"
+            },
+            "line": 184,
+            "column": 12
+          }
+        },
+        {
+          "incidentId": "3ae47c74-85fd-4322-b325-91d4a838d635",
+          "ruleId": "Api.0002",
+          "description": "API is available in package System.Runtime.WindowsRuntime, 4.7.0. Add package reference to System.Runtime.WindowsRuntime, 4.7.0",
+          "projectPath": "LP2DTP\\LP2DTP.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "var deleteButton = new Button\r\n            {\r\n                Content = \u0022Delete\u0022,\r\n                Margin = new Thickness(2),\r\n                Padding = new Thickness(8, 4, 8, 4),\r\n                Background = new SolidColorBrush(new Windows.UI.Color { A = 255, R = 244, G = 67, B = 54 })\r\n            };",
+              "protected": "T:Windows.UI.Color"
+            },
+            "kind": "File",
+            "path": "LP2DTP\\VisaItemListContent.cs",
+            "snippet": "var deleteButton = new Button\r\n            {\r\n                Content = \u0022Delete\u0022,\r\n                Margin = new Thickness(2),\r\n                Padding = new Thickness(8, 4, 8, 4),\r\n                Background = new SolidColorBrush(new Windows.UI.Color { A = 255, R = 244, G = 67, B = 54 })\r\n            };",
+            "protectedSnippet": "T:Windows.UI.Color",
+            "label": "T:Windows.UI.Color",
+            "properties": {
+              "PackageId": "System.Runtime.WindowsRuntime",
+              "PackageNewVersion": "4.7.0"
+            },
+            "line": 184,
+            "column": 12
+          }
+        },
+        {
+          "incidentId": "38f7aa58-348c-4bf5-8c57-f56de28526a6",
+          "ruleId": "Api.0002",
+          "description": "API is available in package System.Runtime.WindowsRuntime, 4.7.0. Add package reference to System.Runtime.WindowsRuntime, 4.7.0",
+          "projectPath": "LP2DTP\\LP2DTP.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "var duplicateButton = new Button\r\n            {\r\n                Content = \u0022Copy\u0022,\r\n                Margin = new Thickness(2),\r\n                Padding = new Thickness(8, 4, 8, 4),\r\n                Background = new SolidColorBrush(new Windows.UI.Color { A = 255, R = 33, G = 150, B = 243 })\r\n            };",
+              "protected": "P:Windows.UI.Color.B"
+            },
+            "kind": "File",
+            "path": "LP2DTP\\VisaItemListContent.cs",
+            "snippet": "var duplicateButton = new Button\r\n            {\r\n                Content = \u0022Copy\u0022,\r\n                Margin = new Thickness(2),\r\n                Padding = new Thickness(8, 4, 8, 4),\r\n                Background = new SolidColorBrush(new Windows.UI.Color { A = 255, R = 33, G = 150, B = 243 })\r\n            };",
+            "protectedSnippet": "P:Windows.UI.Color.B",
+            "label": "P:Windows.UI.Color.B",
+            "properties": {
+              "PackageId": "System.Runtime.WindowsRuntime",
+              "PackageNewVersion": "4.7.0"
+            },
+            "line": 156,
+            "column": 12
+          }
+        },
+        {
+          "incidentId": "3952bc0b-f04c-4765-9bcf-7284c1028be4",
+          "ruleId": "Api.0002",
+          "description": "API is available in package System.Runtime.WindowsRuntime, 4.7.0. Add package reference to System.Runtime.WindowsRuntime, 4.7.0",
+          "projectPath": "LP2DTP\\LP2DTP.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "var duplicateButton = new Button\r\n            {\r\n                Content = \u0022Copy\u0022,\r\n                Margin = new Thickness(2),\r\n                Padding = new Thickness(8, 4, 8, 4),\r\n                Background = new SolidColorBrush(new Windows.UI.Color { A = 255, R = 33, G = 150, B = 243 })\r\n            };",
+              "protected": "P:Windows.UI.Color.G"
+            },
+            "kind": "File",
+            "path": "LP2DTP\\VisaItemListContent.cs",
+            "snippet": "var duplicateButton = new Button\r\n            {\r\n                Content = \u0022Copy\u0022,\r\n                Margin = new Thickness(2),\r\n                Padding = new Thickness(8, 4, 8, 4),\r\n                Background = new SolidColorBrush(new Windows.UI.Color { A = 255, R = 33, G = 150, B = 243 })\r\n            };",
+            "protectedSnippet": "P:Windows.UI.Color.G",
+            "label": "P:Windows.UI.Color.G",
+            "properties": {
+              "PackageId": "System.Runtime.WindowsRuntime",
+              "PackageNewVersion": "4.7.0"
+            },
+            "line": 156,
+            "column": 12
+          }
+        },
+        {
+          "incidentId": "3da2fdf5-f9d3-4411-b4b8-0129400d2606",
+          "ruleId": "Api.0002",
+          "description": "API is available in package System.Runtime.WindowsRuntime, 4.7.0. Add package reference to System.Runtime.WindowsRuntime, 4.7.0",
+          "projectPath": "LP2DTP\\LP2DTP.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "var duplicateButton = new Button\r\n            {\r\n                Content = \u0022Copy\u0022,\r\n                Margin = new Thickness(2),\r\n                Padding = new Thickness(8, 4, 8, 4),\r\n                Background = new SolidColorBrush(new Windows.UI.Color { A = 255, R = 33, G = 150, B = 243 })\r\n            };",
+              "protected": "P:Windows.UI.Color.R"
+            },
+            "kind": "File",
+            "path": "LP2DTP\\VisaItemListContent.cs",
+            "snippet": "var duplicateButton = new Button\r\n            {\r\n                Content = \u0022Copy\u0022,\r\n                Margin = new Thickness(2),\r\n                Padding = new Thickness(8, 4, 8, 4),\r\n                Background = new SolidColorBrush(new Windows.UI.Color { A = 255, R = 33, G = 150, B = 243 })\r\n            };",
+            "protectedSnippet": "P:Windows.UI.Color.R",
+            "label": "P:Windows.UI.Color.R",
+            "properties": {
+              "PackageId": "System.Runtime.WindowsRuntime",
+              "PackageNewVersion": "4.7.0"
+            },
+            "line": 156,
+            "column": 12
+          }
+        },
+        {
+          "incidentId": "29251a0b-fd9a-4077-b91a-65425b7c86b9",
+          "ruleId": "Api.0002",
+          "description": "API is available in package System.Runtime.WindowsRuntime, 4.7.0. Add package reference to System.Runtime.WindowsRuntime, 4.7.0",
+          "projectPath": "LP2DTP\\LP2DTP.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "var duplicateButton = new Button\r\n            {\r\n                Content = \u0022Copy\u0022,\r\n                Margin = new Thickness(2),\r\n                Padding = new Thickness(8, 4, 8, 4),\r\n                Background = new SolidColorBrush(new Windows.UI.Color { A = 255, R = 33, G = 150, B = 243 })\r\n            };",
+              "protected": "P:Windows.UI.Color.A"
+            },
+            "kind": "File",
+            "path": "LP2DTP\\VisaItemListContent.cs",
+            "snippet": "var duplicateButton = new Button\r\n            {\r\n                Content = \u0022Copy\u0022,\r\n                Margin = new Thickness(2),\r\n                Padding = new Thickness(8, 4, 8, 4),\r\n                Background = new SolidColorBrush(new Windows.UI.Color { A = 255, R = 33, G = 150, B = 243 })\r\n            };",
+            "protectedSnippet": "P:Windows.UI.Color.A",
+            "label": "P:Windows.UI.Color.A",
+            "properties": {
+              "PackageId": "System.Runtime.WindowsRuntime",
+              "PackageNewVersion": "4.7.0"
+            },
+            "line": 156,
+            "column": 12
+          }
+        },
+        {
+          "incidentId": "2da432a6-1765-4df1-bec2-2b91acb13cfb",
+          "ruleId": "Api.0002",
+          "description": "API is available in package System.Runtime.WindowsRuntime, 4.7.0. Add package reference to System.Runtime.WindowsRuntime, 4.7.0",
+          "projectPath": "LP2DTP\\LP2DTP.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "var duplicateButton = new Button\r\n            {\r\n                Content = \u0022Copy\u0022,\r\n                Margin = new Thickness(2),\r\n                Padding = new Thickness(8, 4, 8, 4),\r\n                Background = new SolidColorBrush(new Windows.UI.Color { A = 255, R = 33, G = 150, B = 243 })\r\n            };",
+              "protected": "T:Windows.UI.Color"
+            },
+            "kind": "File",
+            "path": "LP2DTP\\VisaItemListContent.cs",
+            "snippet": "var duplicateButton = new Button\r\n            {\r\n                Content = \u0022Copy\u0022,\r\n                Margin = new Thickness(2),\r\n                Padding = new Thickness(8, 4, 8, 4),\r\n                Background = new SolidColorBrush(new Windows.UI.Color { A = 255, R = 33, G = 150, B = 243 })\r\n            };",
+            "protectedSnippet": "T:Windows.UI.Color",
+            "label": "T:Windows.UI.Color",
+            "properties": {
+              "PackageId": "System.Runtime.WindowsRuntime",
+              "PackageNewVersion": "4.7.0"
+            },
+            "line": 156,
+            "column": 12
+          }
+        },
+        {
+          "incidentId": "af8b150a-3541-49d9-a824-c70c011068a3",
+          "ruleId": "Api.0002",
+          "description": "API is available in package System.Runtime.WindowsRuntime, 4.7.0. Add package reference to System.Runtime.WindowsRuntime, 4.7.0",
+          "projectPath": "LP2DTP\\LP2DTP.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "var itemGrid = new Grid\r\n            {\r\n                DataContext = item,\r\n                ColumnDefinitions =\r\n                {\r\n                    new ColumnDefinition { Width = new GridLength(150) },\r\n                    new ColumnDefinition { Width = new GridLength(150) },\r\n                    new ColumnDefinition { Width = new GridLength(150) },\r\n                    new ColumnDefinition { Width = new GridLength(200) },\r\n                    new ColumnDefinition { Width = new GridLength(120) },\r\n                    new ColumnDefinition { Width = new GridLength(80) },\r\n                    new ColumnDefinition { Width = GridLength.Auto }\r\n                },\r\n                Padding = new Thickness(4),\r\n                BorderThickness = new Thickness(0, 0, 0, 1),\r\n                BorderBrush = new SolidColorBrush(new Windows.UI.Color { A = 128, R = 200, G = 200, B = 200 })\r\n            };",
+              "protected": "P:Windows.UI.Color.B"
+            },
+            "kind": "File",
+            "path": "LP2DTP\\VisaItemListContent.cs",
+            "snippet": "var itemGrid = new Grid\r\n            {\r\n                DataContext = item,\r\n                ColumnDefinitions =\r\n                {\r\n                    new ColumnDefinition { Width = new GridLength(150) },\r\n                    new ColumnDefinition { Width = new GridLength(150) },\r\n                    new ColumnDefinition { Width = new GridLength(150) },\r\n                    new ColumnDefinition { Width = new GridLength(200) },\r\n                    new ColumnDefinition { Width = new GridLength(120) },\r\n                    new ColumnDefinition { Width = new GridLength(80) },\r\n                    new ColumnDefinition { Width = GridLength.Auto }\r\n                },\r\n                Padding = new Thickness(4),\r\n                BorderThickness = new Thickness(0, 0, 0, 1),\r\n                BorderBrush = new SolidColorBrush(new Windows.UI.Color { A = 128, R = 200, G = 200, B = 200 })\r\n            };",
+            "protectedSnippet": "P:Windows.UI.Color.B",
+            "label": "P:Windows.UI.Color.B",
+            "properties": {
+              "PackageId": "System.Runtime.WindowsRuntime",
+              "PackageNewVersion": "4.7.0"
+            },
+            "line": 92,
+            "column": 12
+          }
+        },
+        {
+          "incidentId": "de894033-d078-47e7-8e66-37fcf320c7c2",
+          "ruleId": "Api.0002",
+          "description": "API is available in package System.Runtime.WindowsRuntime, 4.7.0. Add package reference to System.Runtime.WindowsRuntime, 4.7.0",
+          "projectPath": "LP2DTP\\LP2DTP.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "var itemGrid = new Grid\r\n            {\r\n                DataContext = item,\r\n                ColumnDefinitions =\r\n                {\r\n                    new ColumnDefinition { Width = new GridLength(150) },\r\n                    new ColumnDefinition { Width = new GridLength(150) },\r\n                    new ColumnDefinition { Width = new GridLength(150) },\r\n                    new ColumnDefinition { Width = new GridLength(200) },\r\n                    new ColumnDefinition { Width = new GridLength(120) },\r\n                    new ColumnDefinition { Width = new GridLength(80) },\r\n                    new ColumnDefinition { Width = GridLength.Auto }\r\n                },\r\n                Padding = new Thickness(4),\r\n                BorderThickness = new Thickness(0, 0, 0, 1),\r\n                BorderBrush = new SolidColorBrush(new Windows.UI.Color { A = 128, R = 200, G = 200, B = 200 })\r\n            };",
+              "protected": "P:Windows.UI.Color.G"
+            },
+            "kind": "File",
+            "path": "LP2DTP\\VisaItemListContent.cs",
+            "snippet": "var itemGrid = new Grid\r\n            {\r\n                DataContext = item,\r\n                ColumnDefinitions =\r\n                {\r\n                    new ColumnDefinition { Width = new GridLength(150) },\r\n                    new ColumnDefinition { Width = new GridLength(150) },\r\n                    new ColumnDefinition { Width = new GridLength(150) },\r\n                    new ColumnDefinition { Width = new GridLength(200) },\r\n                    new ColumnDefinition { Width = new GridLength(120) },\r\n                    new ColumnDefinition { Width = new GridLength(80) },\r\n                    new ColumnDefinition { Width = GridLength.Auto }\r\n                },\r\n                Padding = new Thickness(4),\r\n                BorderThickness = new Thickness(0, 0, 0, 1),\r\n                BorderBrush = new SolidColorBrush(new Windows.UI.Color { A = 128, R = 200, G = 200, B = 200 })\r\n            };",
+            "protectedSnippet": "P:Windows.UI.Color.G",
+            "label": "P:Windows.UI.Color.G",
+            "properties": {
+              "PackageId": "System.Runtime.WindowsRuntime",
+              "PackageNewVersion": "4.7.0"
+            },
+            "line": 92,
+            "column": 12
+          }
+        },
+        {
+          "incidentId": "4bcab7de-cdab-4f2a-b9b1-a99441b3847c",
+          "ruleId": "Api.0002",
+          "description": "API is available in package System.Runtime.WindowsRuntime, 4.7.0. Add package reference to System.Runtime.WindowsRuntime, 4.7.0",
+          "projectPath": "LP2DTP\\LP2DTP.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "var itemGrid = new Grid\r\n            {\r\n                DataContext = item,\r\n                ColumnDefinitions =\r\n                {\r\n                    new ColumnDefinition { Width = new GridLength(150) },\r\n                    new ColumnDefinition { Width = new GridLength(150) },\r\n                    new ColumnDefinition { Width = new GridLength(150) },\r\n                    new ColumnDefinition { Width = new GridLength(200) },\r\n                    new ColumnDefinition { Width = new GridLength(120) },\r\n                    new ColumnDefinition { Width = new GridLength(80) },\r\n                    new ColumnDefinition { Width = GridLength.Auto }\r\n                },\r\n                Padding = new Thickness(4),\r\n                BorderThickness = new Thickness(0, 0, 0, 1),\r\n                BorderBrush = new SolidColorBrush(new Windows.UI.Color { A = 128, R = 200, G = 200, B = 200 })\r\n            };",
+              "protected": "P:Windows.UI.Color.R"
+            },
+            "kind": "File",
+            "path": "LP2DTP\\VisaItemListContent.cs",
+            "snippet": "var itemGrid = new Grid\r\n            {\r\n                DataContext = item,\r\n                ColumnDefinitions =\r\n                {\r\n                    new ColumnDefinition { Width = new GridLength(150) },\r\n                    new ColumnDefinition { Width = new GridLength(150) },\r\n                    new ColumnDefinition { Width = new GridLength(150) },\r\n                    new ColumnDefinition { Width = new GridLength(200) },\r\n                    new ColumnDefinition { Width = new GridLength(120) },\r\n                    new ColumnDefinition { Width = new GridLength(80) },\r\n                    new ColumnDefinition { Width = GridLength.Auto }\r\n                },\r\n                Padding = new Thickness(4),\r\n                BorderThickness = new Thickness(0, 0, 0, 1),\r\n                BorderBrush = new SolidColorBrush(new Windows.UI.Color { A = 128, R = 200, G = 200, B = 200 })\r\n            };",
+            "protectedSnippet": "P:Windows.UI.Color.R",
+            "label": "P:Windows.UI.Color.R",
+            "properties": {
+              "PackageId": "System.Runtime.WindowsRuntime",
+              "PackageNewVersion": "4.7.0"
+            },
+            "line": 92,
+            "column": 12
+          }
+        },
+        {
+          "incidentId": "f9438fb1-402e-43a2-a9de-b4a7c26cf90b",
+          "ruleId": "Api.0002",
+          "description": "API is available in package System.Runtime.WindowsRuntime, 4.7.0. Add package reference to System.Runtime.WindowsRuntime, 4.7.0",
+          "projectPath": "LP2DTP\\LP2DTP.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "var itemGrid = new Grid\r\n            {\r\n                DataContext = item,\r\n                ColumnDefinitions =\r\n                {\r\n                    new ColumnDefinition { Width = new GridLength(150) },\r\n                    new ColumnDefinition { Width = new GridLength(150) },\r\n                    new ColumnDefinition { Width = new GridLength(150) },\r\n                    new ColumnDefinition { Width = new GridLength(200) },\r\n                    new ColumnDefinition { Width = new GridLength(120) },\r\n                    new ColumnDefinition { Width = new GridLength(80) },\r\n                    new ColumnDefinition { Width = GridLength.Auto }\r\n                },\r\n                Padding = new Thickness(4),\r\n                BorderThickness = new Thickness(0, 0, 0, 1),\r\n                BorderBrush = new SolidColorBrush(new Windows.UI.Color { A = 128, R = 200, G = 200, B = 200 })\r\n            };",
+              "protected": "P:Windows.UI.Color.A"
+            },
+            "kind": "File",
+            "path": "LP2DTP\\VisaItemListContent.cs",
+            "snippet": "var itemGrid = new Grid\r\n            {\r\n                DataContext = item,\r\n                ColumnDefinitions =\r\n                {\r\n                    new ColumnDefinition { Width = new GridLength(150) },\r\n                    new ColumnDefinition { Width = new GridLength(150) },\r\n                    new ColumnDefinition { Width = new GridLength(150) },\r\n                    new ColumnDefinition { Width = new GridLength(200) },\r\n                    new ColumnDefinition { Width = new GridLength(120) },\r\n                    new ColumnDefinition { Width = new GridLength(80) },\r\n                    new ColumnDefinition { Width = GridLength.Auto }\r\n                },\r\n                Padding = new Thickness(4),\r\n                BorderThickness = new Thickness(0, 0, 0, 1),\r\n                BorderBrush = new SolidColorBrush(new Windows.UI.Color { A = 128, R = 200, G = 200, B = 200 })\r\n            };",
+            "protectedSnippet": "P:Windows.UI.Color.A",
+            "label": "P:Windows.UI.Color.A",
+            "properties": {
+              "PackageId": "System.Runtime.WindowsRuntime",
+              "PackageNewVersion": "4.7.0"
+            },
+            "line": 92,
+            "column": 12
+          }
+        },
+        {
+          "incidentId": "387593c6-1477-4271-92d0-df4db50a450a",
+          "ruleId": "Api.0002",
+          "description": "API is available in package System.Runtime.WindowsRuntime, 4.7.0. Add package reference to System.Runtime.WindowsRuntime, 4.7.0",
+          "projectPath": "LP2DTP\\LP2DTP.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "var itemGrid = new Grid\r\n            {\r\n                DataContext = item,\r\n                ColumnDefinitions =\r\n                {\r\n                    new ColumnDefinition { Width = new GridLength(150) },\r\n                    new ColumnDefinition { Width = new GridLength(150) },\r\n                    new ColumnDefinition { Width = new GridLength(150) },\r\n                    new ColumnDefinition { Width = new GridLength(200) },\r\n                    new ColumnDefinition { Width = new GridLength(120) },\r\n                    new ColumnDefinition { Width = new GridLength(80) },\r\n                    new ColumnDefinition { Width = GridLength.Auto }\r\n                },\r\n                Padding = new Thickness(4),\r\n                BorderThickness = new Thickness(0, 0, 0, 1),\r\n                BorderBrush = new SolidColorBrush(new Windows.UI.Color { A = 128, R = 200, G = 200, B = 200 })\r\n            };",
+              "protected": "T:Windows.UI.Color"
+            },
+            "kind": "File",
+            "path": "LP2DTP\\VisaItemListContent.cs",
+            "snippet": "var itemGrid = new Grid\r\n            {\r\n                DataContext = item,\r\n                ColumnDefinitions =\r\n                {\r\n                    new ColumnDefinition { Width = new GridLength(150) },\r\n                    new ColumnDefinition { Width = new GridLength(150) },\r\n                    new ColumnDefinition { Width = new GridLength(150) },\r\n                    new ColumnDefinition { Width = new GridLength(200) },\r\n                    new ColumnDefinition { Width = new GridLength(120) },\r\n                    new ColumnDefinition { Width = new GridLength(80) },\r\n                    new ColumnDefinition { Width = GridLength.Auto }\r\n                },\r\n                Padding = new Thickness(4),\r\n                BorderThickness = new Thickness(0, 0, 0, 1),\r\n                BorderBrush = new SolidColorBrush(new Windows.UI.Color { A = 128, R = 200, G = 200, B = 200 })\r\n            };",
+            "protectedSnippet": "T:Windows.UI.Color",
+            "label": "T:Windows.UI.Color",
+            "properties": {
+              "PackageId": "System.Runtime.WindowsRuntime",
+              "PackageNewVersion": "4.7.0"
+            },
+            "line": 92,
+            "column": 12
+          }
+        },
+        {
+          "incidentId": "d42c4f27-ece7-4a68-8afc-1dbe513b0e97",
+          "ruleId": "Api.0002",
+          "description": "API is available in package System.Runtime.WindowsRuntime, 4.7.0. Add package reference to System.Runtime.WindowsRuntime, 4.7.0",
+          "projectPath": "LP2DTP\\LP2DTP.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "var headerText = new TextBlock\r\n                {\r\n                    Text = headers[i],\r\n                    Margin = new Thickness(4),\r\n                    Foreground = new SolidColorBrush(new Windows.UI.Color { A = 255, R = 255, G = 255, B = 255 })\r\n                };",
+              "protected": "P:Windows.UI.Color.B"
+            },
+            "kind": "File",
+            "path": "LP2DTP\\VisaItemListContent.cs",
+            "snippet": "var headerText = new TextBlock\r\n                {\r\n                    Text = headers[i],\r\n                    Margin = new Thickness(4),\r\n                    Foreground = new SolidColorBrush(new Windows.UI.Color { A = 255, R = 255, G = 255, B = 255 })\r\n                };",
+            "protectedSnippet": "P:Windows.UI.Color.B",
+            "label": "P:Windows.UI.Color.B",
+            "properties": {
+              "PackageId": "System.Runtime.WindowsRuntime",
+              "PackageNewVersion": "4.7.0"
+            },
+            "line": 77,
+            "column": 16
+          }
+        },
+        {
+          "incidentId": "efe3ab9e-b806-486e-846b-048eda09cf02",
+          "ruleId": "Api.0002",
+          "description": "API is available in package System.Runtime.WindowsRuntime, 4.7.0. Add package reference to System.Runtime.WindowsRuntime, 4.7.0",
+          "projectPath": "LP2DTP\\LP2DTP.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "var headerText = new TextBlock\r\n                {\r\n                    Text = headers[i],\r\n                    Margin = new Thickness(4),\r\n                    Foreground = new SolidColorBrush(new Windows.UI.Color { A = 255, R = 255, G = 255, B = 255 })\r\n                };",
+              "protected": "P:Windows.UI.Color.G"
+            },
+            "kind": "File",
+            "path": "LP2DTP\\VisaItemListContent.cs",
+            "snippet": "var headerText = new TextBlock\r\n                {\r\n                    Text = headers[i],\r\n                    Margin = new Thickness(4),\r\n                    Foreground = new SolidColorBrush(new Windows.UI.Color { A = 255, R = 255, G = 255, B = 255 })\r\n                };",
+            "protectedSnippet": "P:Windows.UI.Color.G",
+            "label": "P:Windows.UI.Color.G",
+            "properties": {
+              "PackageId": "System.Runtime.WindowsRuntime",
+              "PackageNewVersion": "4.7.0"
+            },
+            "line": 77,
+            "column": 16
+          }
+        },
+        {
+          "incidentId": "2987116c-cc99-46a8-9bde-d9887bf8350b",
+          "ruleId": "Api.0002",
+          "description": "API is available in package System.Runtime.WindowsRuntime, 4.7.0. Add package reference to System.Runtime.WindowsRuntime, 4.7.0",
+          "projectPath": "LP2DTP\\LP2DTP.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "var headerText = new TextBlock\r\n                {\r\n                    Text = headers[i],\r\n                    Margin = new Thickness(4),\r\n                    Foreground = new SolidColorBrush(new Windows.UI.Color { A = 255, R = 255, G = 255, B = 255 })\r\n                };",
+              "protected": "P:Windows.UI.Color.R"
+            },
+            "kind": "File",
+            "path": "LP2DTP\\VisaItemListContent.cs",
+            "snippet": "var headerText = new TextBlock\r\n                {\r\n                    Text = headers[i],\r\n                    Margin = new Thickness(4),\r\n                    Foreground = new SolidColorBrush(new Windows.UI.Color { A = 255, R = 255, G = 255, B = 255 })\r\n                };",
+            "protectedSnippet": "P:Windows.UI.Color.R",
+            "label": "P:Windows.UI.Color.R",
+            "properties": {
+              "PackageId": "System.Runtime.WindowsRuntime",
+              "PackageNewVersion": "4.7.0"
+            },
+            "line": 77,
+            "column": 16
+          }
+        },
+        {
+          "incidentId": "5ab4f0a9-a2ff-42d4-81f4-1d24940cde84",
+          "ruleId": "Api.0002",
+          "description": "API is available in package System.Runtime.WindowsRuntime, 4.7.0. Add package reference to System.Runtime.WindowsRuntime, 4.7.0",
+          "projectPath": "LP2DTP\\LP2DTP.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "var headerText = new TextBlock\r\n                {\r\n                    Text = headers[i],\r\n                    Margin = new Thickness(4),\r\n                    Foreground = new SolidColorBrush(new Windows.UI.Color { A = 255, R = 255, G = 255, B = 255 })\r\n                };",
+              "protected": "P:Windows.UI.Color.A"
+            },
+            "kind": "File",
+            "path": "LP2DTP\\VisaItemListContent.cs",
+            "snippet": "var headerText = new TextBlock\r\n                {\r\n                    Text = headers[i],\r\n                    Margin = new Thickness(4),\r\n                    Foreground = new SolidColorBrush(new Windows.UI.Color { A = 255, R = 255, G = 255, B = 255 })\r\n                };",
+            "protectedSnippet": "P:Windows.UI.Color.A",
+            "label": "P:Windows.UI.Color.A",
+            "properties": {
+              "PackageId": "System.Runtime.WindowsRuntime",
+              "PackageNewVersion": "4.7.0"
+            },
+            "line": 77,
+            "column": 16
+          }
+        },
+        {
+          "incidentId": "fd972b72-8bd2-42f5-94ea-fa572a6af332",
+          "ruleId": "Api.0002",
+          "description": "API is available in package System.Runtime.WindowsRuntime, 4.7.0. Add package reference to System.Runtime.WindowsRuntime, 4.7.0",
+          "projectPath": "LP2DTP\\LP2DTP.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "var headerText = new TextBlock\r\n                {\r\n                    Text = headers[i],\r\n                    Margin = new Thickness(4),\r\n                    Foreground = new SolidColorBrush(new Windows.UI.Color { A = 255, R = 255, G = 255, B = 255 })\r\n                };",
+              "protected": "T:Windows.UI.Color"
+            },
+            "kind": "File",
+            "path": "LP2DTP\\VisaItemListContent.cs",
+            "snippet": "var headerText = new TextBlock\r\n                {\r\n                    Text = headers[i],\r\n                    Margin = new Thickness(4),\r\n                    Foreground = new SolidColorBrush(new Windows.UI.Color { A = 255, R = 255, G = 255, B = 255 })\r\n                };",
+            "protectedSnippet": "T:Windows.UI.Color",
+            "label": "T:Windows.UI.Color",
+            "properties": {
+              "PackageId": "System.Runtime.WindowsRuntime",
+              "PackageNewVersion": "4.7.0"
+            },
+            "line": 77,
+            "column": 16
+          }
+        },
+        {
+          "incidentId": "e9a6683f-3914-4539-aa4c-9b0d8f10b283",
+          "ruleId": "Api.0002",
+          "description": "API is available in package System.Runtime.WindowsRuntime, 4.7.0. Add package reference to System.Runtime.WindowsRuntime, 4.7.0",
+          "projectPath": "LP2DTP\\LP2DTP.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "var headerGrid = new Grid\r\n            {\r\n                ColumnDefinitions =\r\n                {\r\n                    new ColumnDefinition { Width = new GridLength(150) },\r\n                    new ColumnDefinition { Width = new GridLength(150) },\r\n                    new ColumnDefinition { Width = new GridLength(150) },\r\n                    new ColumnDefinition { Width = new GridLength(200) },\r\n                    new ColumnDefinition { Width = new GridLength(120) },\r\n                    new ColumnDefinition { Width = new GridLength(80) },\r\n                    new ColumnDefinition { Width = GridLength.Auto }\r\n                },\r\n                Padding = new Thickness(8),\r\n                Background = new SolidColorBrush(new Windows.UI.Color { A = 255, R = 0, G = 102, B = 204 })\r\n            };",
+              "protected": "P:Windows.UI.Color.B"
+            },
+            "kind": "File",
+            "path": "LP2DTP\\VisaItemListContent.cs",
+            "snippet": "var headerGrid = new Grid\r\n            {\r\n                ColumnDefinitions =\r\n                {\r\n                    new ColumnDefinition { Width = new GridLength(150) },\r\n                    new ColumnDefinition { Width = new GridLength(150) },\r\n                    new ColumnDefinition { Width = new GridLength(150) },\r\n                    new ColumnDefinition { Width = new GridLength(200) },\r\n                    new ColumnDefinition { Width = new GridLength(120) },\r\n                    new ColumnDefinition { Width = new GridLength(80) },\r\n                    new ColumnDefinition { Width = GridLength.Auto }\r\n                },\r\n                Padding = new Thickness(8),\r\n                Background = new SolidColorBrush(new Windows.UI.Color { A = 255, R = 0, G = 102, B = 204 })\r\n            };",
+            "protectedSnippet": "P:Windows.UI.Color.B",
+            "label": "P:Windows.UI.Color.B",
+            "properties": {
+              "PackageId": "System.Runtime.WindowsRuntime",
+              "PackageNewVersion": "4.7.0"
+            },
+            "line": 58,
+            "column": 12
+          }
+        },
+        {
+          "incidentId": "a3103599-18d4-46eb-a131-cc77aed60224",
+          "ruleId": "Api.0002",
+          "description": "API is available in package System.Runtime.WindowsRuntime, 4.7.0. Add package reference to System.Runtime.WindowsRuntime, 4.7.0",
+          "projectPath": "LP2DTP\\LP2DTP.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "var headerGrid = new Grid\r\n            {\r\n                ColumnDefinitions =\r\n                {\r\n                    new ColumnDefinition { Width = new GridLength(150) },\r\n                    new ColumnDefinition { Width = new GridLength(150) },\r\n                    new ColumnDefinition { Width = new GridLength(150) },\r\n                    new ColumnDefinition { Width = new GridLength(200) },\r\n                    new ColumnDefinition { Width = new GridLength(120) },\r\n                    new ColumnDefinition { Width = new GridLength(80) },\r\n                    new ColumnDefinition { Width = GridLength.Auto }\r\n                },\r\n                Padding = new Thickness(8),\r\n                Background = new SolidColorBrush(new Windows.UI.Color { A = 255, R = 0, G = 102, B = 204 })\r\n            };",
+              "protected": "P:Windows.UI.Color.G"
+            },
+            "kind": "File",
+            "path": "LP2DTP\\VisaItemListContent.cs",
+            "snippet": "var headerGrid = new Grid\r\n            {\r\n                ColumnDefinitions =\r\n                {\r\n                    new ColumnDefinition { Width = new GridLength(150) },\r\n                    new ColumnDefinition { Width = new GridLength(150) },\r\n                    new ColumnDefinition { Width = new GridLength(150) },\r\n                    new ColumnDefinition { Width = new GridLength(200) },\r\n                    new ColumnDefinition { Width = new GridLength(120) },\r\n                    new ColumnDefinition { Width = new GridLength(80) },\r\n                    new ColumnDefinition { Width = GridLength.Auto }\r\n                },\r\n                Padding = new Thickness(8),\r\n                Background = new SolidColorBrush(new Windows.UI.Color { A = 255, R = 0, G = 102, B = 204 })\r\n            };",
+            "protectedSnippet": "P:Windows.UI.Color.G",
+            "label": "P:Windows.UI.Color.G",
+            "properties": {
+              "PackageId": "System.Runtime.WindowsRuntime",
+              "PackageNewVersion": "4.7.0"
+            },
+            "line": 58,
+            "column": 12
+          }
+        },
+        {
+          "incidentId": "397f83b2-c48e-49f0-81a6-84bab6615233",
+          "ruleId": "Api.0002",
+          "description": "API is available in package System.Runtime.WindowsRuntime, 4.7.0. Add package reference to System.Runtime.WindowsRuntime, 4.7.0",
+          "projectPath": "LP2DTP\\LP2DTP.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "var headerGrid = new Grid\r\n            {\r\n                ColumnDefinitions =\r\n                {\r\n                    new ColumnDefinition { Width = new GridLength(150) },\r\n                    new ColumnDefinition { Width = new GridLength(150) },\r\n                    new ColumnDefinition { Width = new GridLength(150) },\r\n                    new ColumnDefinition { Width = new GridLength(200) },\r\n                    new ColumnDefinition { Width = new GridLength(120) },\r\n                    new ColumnDefinition { Width = new GridLength(80) },\r\n                    new ColumnDefinition { Width = GridLength.Auto }\r\n                },\r\n                Padding = new Thickness(8),\r\n                Background = new SolidColorBrush(new Windows.UI.Color { A = 255, R = 0, G = 102, B = 204 })\r\n            };",
+              "protected": "P:Windows.UI.Color.R"
+            },
+            "kind": "File",
+            "path": "LP2DTP\\VisaItemListContent.cs",
+            "snippet": "var headerGrid = new Grid\r\n            {\r\n                ColumnDefinitions =\r\n                {\r\n                    new ColumnDefinition { Width = new GridLength(150) },\r\n                    new ColumnDefinition { Width = new GridLength(150) },\r\n                    new ColumnDefinition { Width = new GridLength(150) },\r\n                    new ColumnDefinition { Width = new GridLength(200) },\r\n                    new ColumnDefinition { Width = new GridLength(120) },\r\n                    new ColumnDefinition { Width = new GridLength(80) },\r\n                    new ColumnDefinition { Width = GridLength.Auto }\r\n                },\r\n                Padding = new Thickness(8),\r\n                Background = new SolidColorBrush(new Windows.UI.Color { A = 255, R = 0, G = 102, B = 204 })\r\n            };",
+            "protectedSnippet": "P:Windows.UI.Color.R",
+            "label": "P:Windows.UI.Color.R",
+            "properties": {
+              "PackageId": "System.Runtime.WindowsRuntime",
+              "PackageNewVersion": "4.7.0"
+            },
+            "line": 58,
+            "column": 12
+          }
+        },
+        {
+          "incidentId": "c59829dd-0bbb-4766-b61f-515e2fa5ea5b",
+          "ruleId": "Api.0002",
+          "description": "API is available in package System.Runtime.WindowsRuntime, 4.7.0. Add package reference to System.Runtime.WindowsRuntime, 4.7.0",
+          "projectPath": "LP2DTP\\LP2DTP.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "var headerGrid = new Grid\r\n            {\r\n                ColumnDefinitions =\r\n                {\r\n                    new ColumnDefinition { Width = new GridLength(150) },\r\n                    new ColumnDefinition { Width = new GridLength(150) },\r\n                    new ColumnDefinition { Width = new GridLength(150) },\r\n                    new ColumnDefinition { Width = new GridLength(200) },\r\n                    new ColumnDefinition { Width = new GridLength(120) },\r\n                    new ColumnDefinition { Width = new GridLength(80) },\r\n                    new ColumnDefinition { Width = GridLength.Auto }\r\n                },\r\n                Padding = new Thickness(8),\r\n                Background = new SolidColorBrush(new Windows.UI.Color { A = 255, R = 0, G = 102, B = 204 })\r\n            };",
+              "protected": "P:Windows.UI.Color.A"
+            },
+            "kind": "File",
+            "path": "LP2DTP\\VisaItemListContent.cs",
+            "snippet": "var headerGrid = new Grid\r\n            {\r\n                ColumnDefinitions =\r\n                {\r\n                    new ColumnDefinition { Width = new GridLength(150) },\r\n                    new ColumnDefinition { Width = new GridLength(150) },\r\n                    new ColumnDefinition { Width = new GridLength(150) },\r\n                    new ColumnDefinition { Width = new GridLength(200) },\r\n                    new ColumnDefinition { Width = new GridLength(120) },\r\n                    new ColumnDefinition { Width = new GridLength(80) },\r\n                    new ColumnDefinition { Width = GridLength.Auto }\r\n                },\r\n                Padding = new Thickness(8),\r\n                Background = new SolidColorBrush(new Windows.UI.Color { A = 255, R = 0, G = 102, B = 204 })\r\n            };",
+            "protectedSnippet": "P:Windows.UI.Color.A",
+            "label": "P:Windows.UI.Color.A",
+            "properties": {
+              "PackageId": "System.Runtime.WindowsRuntime",
+              "PackageNewVersion": "4.7.0"
+            },
+            "line": 58,
+            "column": 12
+          }
+        },
+        {
+          "incidentId": "2f5c0607-8de2-405a-a1c8-c6413e1df615",
+          "ruleId": "Api.0002",
+          "description": "API is available in package System.Runtime.WindowsRuntime, 4.7.0. Add package reference to System.Runtime.WindowsRuntime, 4.7.0",
+          "projectPath": "LP2DTP\\LP2DTP.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "var headerGrid = new Grid\r\n            {\r\n                ColumnDefinitions =\r\n                {\r\n                    new ColumnDefinition { Width = new GridLength(150) },\r\n                    new ColumnDefinition { Width = new GridLength(150) },\r\n                    new ColumnDefinition { Width = new GridLength(150) },\r\n                    new ColumnDefinition { Width = new GridLength(200) },\r\n                    new ColumnDefinition { Width = new GridLength(120) },\r\n                    new ColumnDefinition { Width = new GridLength(80) },\r\n                    new ColumnDefinition { Width = GridLength.Auto }\r\n                },\r\n                Padding = new Thickness(8),\r\n                Background = new SolidColorBrush(new Windows.UI.Color { A = 255, R = 0, G = 102, B = 204 })\r\n            };",
+              "protected": "T:Windows.UI.Color"
+            },
+            "kind": "File",
+            "path": "LP2DTP\\VisaItemListContent.cs",
+            "snippet": "var headerGrid = new Grid\r\n            {\r\n                ColumnDefinitions =\r\n                {\r\n                    new ColumnDefinition { Width = new GridLength(150) },\r\n                    new ColumnDefinition { Width = new GridLength(150) },\r\n                    new ColumnDefinition { Width = new GridLength(150) },\r\n                    new ColumnDefinition { Width = new GridLength(200) },\r\n                    new ColumnDefinition { Width = new GridLength(120) },\r\n                    new ColumnDefinition { Width = new GridLength(80) },\r\n                    new ColumnDefinition { Width = GridLength.Auto }\r\n                },\r\n                Padding = new Thickness(8),\r\n                Background = new SolidColorBrush(new Windows.UI.Color { A = 255, R = 0, G = 102, B = 204 })\r\n            };",
+            "protectedSnippet": "T:Windows.UI.Color",
+            "label": "T:Windows.UI.Color",
+            "properties": {
+              "PackageId": "System.Runtime.WindowsRuntime",
+              "PackageNewVersion": "4.7.0"
+            },
+            "line": 58,
+            "column": 12
+          }
+        },
+        {
+          "incidentId": "b295c323-5eab-4cc4-ae69-99adf6c3d8a6",
+          "ruleId": "Api.0003",
+          "description": "Breaking change: URI length limits removed ",
+          "projectPath": "LP2DTP\\LP2DTP.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "global::System.Uri resourceLocator = new global::System.Uri(\u0022ms-appx:///App.xaml\u0022);",
+              "protected": "T:System.Uri"
+            },
+            "kind": "File",
+            "path": "LP2DTP\\obj\\x64\\Debug\\net8.0-windows10.0.19041.0\\win-x64\\App.g.i.cs",
+            "snippet": "global::System.Uri resourceLocator = new global::System.Uri(\u0022ms-appx:///App.xaml\u0022);",
+            "protectedSnippet": "T:System.Uri",
+            "label": "T:System.Uri",
+            "links": [
+              {
+                "title": "API \u30C9\u30AD\u30E5\u30E1\u30F3\u30C8",
+                "url": "https://github.com/dotnet/docs/blob/main/docs/core/compatibility/networking/10.0/uri-length-limits-removed.md",
+                "isCustom": false
+              }
+            ],
+            "line": 50,
+            "column": 12
+          }
+        },
+        {
+          "incidentId": "6d745738-dc80-4876-ad7c-4cfa48baec7b",
+          "ruleId": "Api.0003",
+          "description": "Breaking change: URI length limits removed ",
+          "projectPath": "LP2DTP\\LP2DTP.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "global::System.Uri resourceLocator = new global::System.Uri(\u0022ms-appx:///App.xaml\u0022);",
+              "protected": "M:System.Uri.#ctor(System.String)"
+            },
+            "kind": "File",
+            "path": "LP2DTP\\obj\\x64\\Debug\\net8.0-windows10.0.19041.0\\win-x64\\App.g.i.cs",
+            "snippet": "global::System.Uri resourceLocator = new global::System.Uri(\u0022ms-appx:///App.xaml\u0022);",
+            "protectedSnippet": "M:System.Uri.#ctor(System.String)",
+            "label": "M:System.Uri.#ctor(System.String)",
+            "links": [
+              {
+                "title": "API \u30C9\u30AD\u30E5\u30E1\u30F3\u30C8",
+                "url": "https://github.com/dotnet/docs/blob/main/docs/core/compatibility/networking/10.0/uri-length-limits-removed.md",
+                "isCustom": false
+              }
+            ],
+            "line": 50,
+            "column": 12
+          }
+        }
+      ],
+      "features": []
+    }
+  ],
+  "rules": {
+    "Project.0002": {
+      "id": "Project.0002",
+      "isFeature": false,
+      "description": "\u30D7\u30ED\u30B8\u30A7\u30AF\u30C8\u306E\u30BF\u30FC\u30B2\u30C3\u30C8 \u30D5\u30EC\u30FC\u30E0\u30EF\u30FC\u30AF\u306F\u3001\u3053\u306E\u30A2\u30C3\u30D7\u30B0\u30EC\u30FC\u30C9\u7528\u306B\u9078\u629E\u3057\u305F\u65B0\u3057\u3044\u30BF\u30FC\u30B2\u30C3\u30C8 \u30D5\u30EC\u30FC\u30E0\u30EF\u30FC\u30AF\u306B\u5909\u66F4\u3059\u308B\u5FC5\u8981\u304C\u3042\u308A\u307E\u3059\u3002\n\n\u30A2\u30C3\u30D7\u30B0\u30EC\u30FC\u30C9\u4E2D\u3001\u30BF\u30FC\u30B2\u30C3\u30C8 \u30D5\u30EC\u30FC\u30E0\u30EF\u30FC\u30AF\u306F\u3001\u8A72\u5F53\u3059\u308B\u5834\u5408\u3001\u5BFE\u5FDC\u3059\u308B\u30D7\u30E9\u30C3\u30C8\u30D5\u30A9\u30FC\u30E0\u306B\u8ABF\u6574\u3055\u308C\u307E\u3059\u3002\u5834\u5408\u306B\u3088\u3063\u3066\u306F\u3001\u6700\u65B0\u306E .NET \u30D5\u30EC\u30FC\u30E0\u30EF\u30FC\u30AF (Windows\u3001iOS\u3001Android \u306A\u3069) \u3067\u72EC\u81EA\u306E\u30D7\u30E9\u30C3\u30C8\u30D5\u30A9\u30FC\u30E0\u3092\u6301\u3064\u3088\u3046\u306B\u306A\u3063\u305F\u6A5F\u80FD\u3092\u4F7F\u7528\u3057\u3066\u3044\u305F\u5834\u5408\u3001\u30A2\u30C3\u30D7\u30B0\u30EC\u30FC\u30C9\u5F8C\u306B\u30D7\u30ED\u30B8\u30A7\u30AF\u30C8\u3067\u8907\u6570\u306E\u30BF\u30FC\u30B2\u30C3\u30C8 \u30D5\u30EC\u30FC\u30E0\u30EF\u30FC\u30AF\u304C\u767A\u751F\u3059\u308B\u5834\u5408\u304C\u3042\u308A\u307E\u3059\u3002",
+      "label": "\u30D7\u30ED\u30B8\u30A7\u30AF\u30C8\u306E\u30BF\u30FC\u30B2\u30C3\u30C8 \u30D5\u30EC\u30FC\u30E0\u30EF\u30FC\u30AF\u3092\u5909\u66F4\u3059\u308B\u5FC5\u8981\u304C\u3042\u308B",
+      "severity": "Mandatory",
+      "effort": 1,
+      "links": [
+        {
+          "title": ".NET Framework\u304B\u3089 .NET \u3078\u306E\u79FB\u690D\u306E\u6982\u8981",
+          "url": "https://go.microsoft.com/fwlink/?linkid=2265227",
+          "isCustom": false
+        },
+        {
+          "title": ".NET \u30D7\u30ED\u30B8\u30A7\u30AF\u30C8 SDK",
+          "url": "https://go.microsoft.com/fwlink/?linkid=2265226",
+          "isCustom": false
+        }
+      ]
+    },
+    "Api.0002": {
+      "id": "Api.0002",
+      "isFeature": false,
+      "description": "API is source incompatible for selected .NET version: requires code changes to compile successfully when targeting a new version, such as removing obsolete APIs or changing method signatures.",
+      "label": "Source incompatible for selected .NET version",
+      "severity": "Potential",
+      "effort": 1,
+      "links": [
+        {
+          "title": ".NET \u306E\u7834\u58CA\u7684\u5909\u66F4",
+          "url": "https://go.microsoft.com/fwlink/?linkid=2262679",
+          "isCustom": false
+        }
+      ]
+    },
+    "Api.0003": {
+      "id": "Api.0003",
+      "isFeature": false,
+      "description": "API has a behavioral change in selected .NET version: code and binaries may behave differently at runtime without needing recompilation, but the new behavior might be undesirable and require updates.",
+      "label": "Behavioral change in selected .NET version",
+      "severity": "Potential",
+      "effort": 1
+    }
+  }
+}
