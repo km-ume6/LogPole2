@@ -131,7 +131,9 @@ namespace LP2DTP.Common.Services
             if ((header[7] & 0x80) != 0)
             {
                 var exceptionCode = header[8];
-                throw new InvalidOperationException($"Modbus exception: {exceptionCode}");
+                throw new InvalidOperationException(
+                    $"Modbus exception: {exceptionCode} ({GetModbusExceptionDescription(exceptionCode)}) " +
+                    $"[Unit={unitId}, FC={functionCode}, Start={startAddress}, Count={count}]");
             }
 
             var byteCount = header[8];
@@ -140,7 +142,8 @@ namespace LP2DTP.Common.Services
 
             if (bytesRead < byteCount)
             {
-                throw new InvalidOperationException("Incomplete Modbus response data");
+                throw new InvalidOperationException(
+                    $"Incomplete Modbus response data [Unit={unitId}, FC={functionCode}, Start={startAddress}, Count={count}, Expected={byteCount}, Actual={bytesRead}]");
             }
 
             // Convert bytes to ushort array
@@ -151,6 +154,23 @@ namespace LP2DTP.Common.Services
             }
 
             return result;
+        }
+
+        private static string GetModbusExceptionDescription(byte exceptionCode)
+        {
+            return exceptionCode switch
+            {
+                1 => "Illegal Function",
+                2 => "Illegal Data Address",
+                3 => "Illegal Data Value",
+                4 => "Slave Device Failure",
+                5 => "Acknowledge",
+                6 => "Slave Device Busy",
+                8 => "Memory Parity Error",
+                10 => "Gateway Path Unavailable",
+                11 => "Gateway Target Device Failed to Respond",
+                _ => "Unknown Exception"
+            };
         }
 
         public void Dispose()

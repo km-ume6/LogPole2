@@ -12,6 +12,7 @@ namespace LP2DTP.Pages
         private readonly AppSettingsService _settingsService;
         private AppSettings _settings;
         private NumberBox _pollingIntervalBox = null!;
+        private NumberBox _healthCheckIntervalBox = null!;
         private TextBlock _statusText = null!;
 
         public SettingsPage()
@@ -93,6 +94,34 @@ namespace LP2DTP.Pages
             pollingIntervalPanel.Children.Add(_pollingIntervalBox);
             contentPanel.Children.Add(pollingIntervalPanel);
 
+            var healthCheckIntervalPanel = CreateSettingRow(
+                "Health Check Interval (ms)",
+                "Time interval for endpoint health checks (5000ms = 5 seconds)"
+            );
+
+            _healthCheckIntervalBox = new NumberBox
+            {
+                Minimum = 500,
+                Maximum = 600000,
+                Value = _settings.HealthCheckIntervalMs,
+                SpinButtonPlacementMode = NumberBoxSpinButtonPlacementMode.Inline,
+                SmallChange = 500,
+                LargeChange = 5000,
+                Width = 200,
+                Margin = new Thickness(0, 8, 0, 0)
+            };
+            _healthCheckIntervalBox.ValueChanged += (s, e) =>
+            {
+                if (_healthCheckIntervalBox.Value >= _healthCheckIntervalBox.Minimum &&
+                    _healthCheckIntervalBox.Value <= _healthCheckIntervalBox.Maximum)
+                {
+                    _settings.HealthCheckIntervalMs = (int)_healthCheckIntervalBox.Value;
+                }
+            };
+
+            healthCheckIntervalPanel.Children.Add(_healthCheckIntervalBox);
+            contentPanel.Children.Add(healthCheckIntervalPanel);
+
             Grid.SetRow(contentPanel, 1);
             rootGrid.Children.Add(contentPanel);
 
@@ -170,6 +199,7 @@ namespace LP2DTP.Pages
             {
                 _settings = await _settingsService.LoadSettingsAsync();
                 _pollingIntervalBox.Value = _settings.PollingIntervalMs;
+                _healthCheckIntervalBox.Value = _settings.HealthCheckIntervalMs;
                 UpdateStatus("Settings loaded", false);
             }
             catch (Exception ex)
@@ -201,6 +231,7 @@ namespace LP2DTP.Pages
                 {
                     _settings = currentSettings;
                     _pollingIntervalBox.Value = _settings.PollingIntervalMs;
+                    _healthCheckIntervalBox.Value = _settings.HealthCheckIntervalMs;
                 }
                 UpdateStatus("Settings reset to default values", false);
             }

@@ -5,9 +5,7 @@ namespace LP2DTP.Common.Models
     /// </summary>
     public enum ModbusItemType
     {
-        Device,
-        Module,
-        Sensor,
-        Instrument
+        Keyence,
+        Ohkura
     }
 }

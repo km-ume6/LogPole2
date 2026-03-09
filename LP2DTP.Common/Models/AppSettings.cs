@@ -11,11 +11,17 @@ namespace LP2DTP.Common.Models
         public int PollingIntervalMs { get; set; } = 1000;
 
         /// <summary>
+        /// Health-check interval in milliseconds
+        /// </summary>
+        public int HealthCheckIntervalMs { get; set; } = 5000;
+
+        /// <summary>
         /// Default values
         /// </summary>
         public static AppSettings Default => new AppSettings
         {
-            PollingIntervalMs = 1000
+            PollingIntervalMs = 1000,
+            HealthCheckIntervalMs = 5000
         };
     }
 }

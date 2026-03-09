@@ -43,7 +43,7 @@ namespace LP2DTP.Common.Models
         /// <summary>
         /// Item type
         /// </summary>
-        public ModbusItemType ItemType { get; set; } = ModbusItemType.Device;
+        public ModbusItemType ItemType { get; set; } = ModbusItemType.Keyence;
 
         /// <summary>
         /// Is enabled

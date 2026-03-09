@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace LP2DTP.Common.Services
@@ -29,6 +30,11 @@ namespace LP2DTP.Common.Services
         int PollingIntervalMs { get; set; }
 
         /// <summary>
+        /// Health-check interval in milliseconds.
+        /// </summary>
+        int HealthCheckIntervalMs { get; set; }
+
+        /// <summary>
         /// Event raised when polling data is received
         /// </summary>
         event EventHandler<PollingDataReceivedEventArgs>? DataReceived;
@@ -37,6 +43,11 @@ namespace LP2DTP.Common.Services
         /// Event raised when polling error occurs
         /// </summary>
         event EventHandler<PollingErrorEventArgs>? ErrorOccurred;
+
+        /// <summary>
+        /// Execute one polling cycle when scheduled.
+        /// </summary>
+        Task ExecuteCycleAsync(CancellationToken cancellationToken);
     }
 
     /// <summary>

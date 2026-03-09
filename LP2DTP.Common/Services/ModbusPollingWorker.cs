@@ -12,13 +12,15 @@ namespace LP2DTP.Common.Services
     {
         private readonly ModbusItem _modbusItem;
         private readonly IModbusCommunication _modbusCommunication;
-        private CancellationTokenSource? _cancellationTokenSource;
-        private Task? _pollingTask;
         private bool _isRunning;
         private bool _isConnected;
+        private DateTime _nextPollingAtUtc = DateTime.MinValue;
+        private DateTime _nextHealthCheckAtUtc = DateTime.MinValue;
+        private bool _isEndpointAlive;
 
         public bool IsRunning => _isRunning;
         public int PollingIntervalMs { get; set; } = 1000;
+        public int HealthCheckIntervalMs { get; set; } = 5000;
 
         public event EventHandler<PollingDataReceivedEventArgs>? DataReceived;
         public event EventHandler<PollingErrorEventArgs>? ErrorOccurred;
@@ -41,8 +43,9 @@ namespace LP2DTP.Common.Services
             }
 
             _isRunning = true;
-            _cancellationTokenSource = new CancellationTokenSource();
-            _pollingTask = Task.Run(() => PollingLoopAsync(_cancellationTokenSource.Token), _cancellationTokenSource.Token);
+            _isEndpointAlive = true;
+            _nextHealthCheckAtUtc = DateTime.UtcNow;
+            _nextPollingAtUtc = DateTime.UtcNow.AddMilliseconds(CalculateInitialDelay());
             return Task.CompletedTask;
         }
 
@@ -54,28 +57,6 @@ namespace LP2DTP.Common.Services
             }
 
             _isRunning = false;
-
-            if (_cancellationTokenSource != null)
-            {
-                _cancellationTokenSource.Cancel();
-
-                if (_pollingTask != null)
-                {
-                    try
-                    {
-                        await _pollingTask.ConfigureAwait(false);
-                    }
-                    catch (OperationCanceledException)
-                    {
-                        // Expected when cancelling
-                    }
-                }
-
-                _cancellationTokenSource.Dispose();
-                _cancellationTokenSource = null;
-            }
-
-            _pollingTask = null;
 
             // Close Modbus connection
             try
@@ -89,67 +70,102 @@ namespace LP2DTP.Common.Services
             }
         }
 
-        private async Task PollingLoopAsync(CancellationToken cancellationToken)
+        public async Task ExecuteCycleAsync(CancellationToken cancellationToken)
         {
-            // Wait until next aligned time before starting first poll
-            var initialDelay = CalculateInitialDelay();
-            if (initialDelay > 0)
+            if (!_isRunning)
             {
-                try
-                {
-                    await Task.Delay(initialDelay, cancellationToken);
-                }
-                catch (OperationCanceledException)
-                {
-                    return;
-                }
+                return;
             }
 
-            while (!cancellationToken.IsCancellationRequested)
+            var now = DateTime.UtcNow;
+
+            if (now >= _nextHealthCheckAtUtc)
             {
-                try
-                {
-                    if (_modbusItem.IsEnabled)
-                    {
-                        await ExecutePollingAsync(cancellationToken);
-                    }
-                    else if (_isConnected)
-                    {
-                        // Ensure no Modbus connection is kept while item is disabled
-                        await _modbusCommunication.DisconnectAsync().ConfigureAwait(false);
-                        _isConnected = false;
-                    }
+                _isEndpointAlive = await CheckEndpointAliveAsync(cancellationToken).ConfigureAwait(false);
+                _nextHealthCheckAtUtc = DateTime.UtcNow.AddMilliseconds(Math.Max(1, HealthCheckIntervalMs));
+            }
 
-                    await Task.Delay(PollingIntervalMs, cancellationToken);
-                }
-                catch (OperationCanceledException)
+            if (!_isEndpointAlive)
+            {
+                if (_isConnected)
                 {
-                    // Expected when stopping
-                    break;
+                    await _modbusCommunication.DisconnectAsync().ConfigureAwait(false);
+                    _isConnected = false;
                 }
-                catch (Exception ex)
-                {
-                    OnErrorOccurred(new PollingErrorEventArgs
-                    {
-                        MachineName = _modbusItem.Device.MachineName,
-                        UnitName = _modbusItem.Device.UnitName,
-                        IpAddress = _modbusItem.Device.IpAddress,
-                        Command = $"Unit {_modbusItem.UnitId}, Reg {_modbusItem.TemperatureRegisterAddress}",
-                        Exception = ex,
-                        ErrorMessage = ex.Message,
-                        Timestamp = DateTime.Now
-                    });
 
-                    // Continue polling even after error
-                    await Task.Delay(PollingIntervalMs, cancellationToken);
+                return;
+            }
+
+            if (now < _nextPollingAtUtc)
+            {
+                return;
+            }
+
+            await ExecuteSingleCycleAsync(cancellationToken).ConfigureAwait(false);
+            _nextPollingAtUtc = DateTime.UtcNow.AddMilliseconds(Math.Max(1, PollingIntervalMs));
+        }
+
+        private async Task<bool> CheckEndpointAliveAsync(CancellationToken cancellationToken)
+        {
+            if (_isConnected && _modbusCommunication.IsConnected)
+            {
+                return true;
+            }
+
+            try
+            {
+                var connected = await _modbusCommunication.ConnectAsync(_modbusItem.Device.IpAddress).ConfigureAwait(false);
+                if (!connected)
+                {
+                    return false;
                 }
+
+                await _modbusCommunication.DisconnectAsync().ConfigureAwait(false);
+                _isConnected = false;
+                return true;
+            }
+            catch
+            {
+                _isConnected = false;
+                return false;
+            }
+        }
+
+        private async Task ExecuteSingleCycleAsync(CancellationToken cancellationToken)
+        {
+            try
+            {
+                if (_modbusItem.IsEnabled)
+                {
+                    await ExecutePollingAsync(cancellationToken).ConfigureAwait(false);
+                }
+                else if (_isConnected)
+                {
+                    // Ensure no Modbus connection is kept while item is disabled
+                    await _modbusCommunication.DisconnectAsync().ConfigureAwait(false);
+                    _isConnected = false;
+                }
+            }
+            catch (Exception ex)
+            {
+                _isEndpointAlive = false;
+                OnErrorOccurred(new PollingErrorEventArgs
+                {
+                    MachineName = _modbusItem.Device.MachineName,
+                    UnitName = _modbusItem.Device.UnitName,
+                    IpAddress = _modbusItem.Device.IpAddress,
+                    Command = $"Unit {_modbusItem.UnitId}, Reg {_modbusItem.TemperatureRegisterAddress}",
+                    Exception = ex,
+                    ErrorMessage = ex.Message,
+                    Timestamp = DateTime.Now
+                });
             }
         }
 
         private int CalculateInitialDelay()
         {
             var now = DateTime.Now;
-            var intervalMs = PollingIntervalMs;
+            var intervalMs = Math.Max(1, PollingIntervalMs);
 
             // Calculate milliseconds since midnight
             var nowMs = (long)now.TimeOfDay.TotalMilliseconds;
@@ -188,18 +204,11 @@ namespace LP2DTP.Common.Services
 
             try
             {
-                // Convert Modicon address to PDU address
-                var pduAddress = ConvertModiconToPduAddress(_modbusItem.TemperatureRegisterAddress, out byte functionCode);
-                
-                // Use specified function code if not derived from address
-                if (_modbusItem.TemperatureRegisterAddress < 100000)
-                {
-                    functionCode = _modbusItem.FunctionCode;
-                }
+                var (pduAddress, functionCode) = ResolveAddressAndFunction();
 
                 // Read temperature register
                 ushort[] registers;
-                
+
                 if (functionCode == 3)
                 {
                     registers = await _modbusCommunication.ReadHoldingRegistersAsync(
@@ -219,23 +228,7 @@ namespace LP2DTP.Common.Services
                     throw new NotSupportedException($"Function code {functionCode} is not supported");
                 }
 
-                // Convert register values to temperature
-                double temperature;
-                
-                if (_modbusItem.RegisterCount == 2)
-                {
-                    // 2 words = 32-bit float
-                    temperature = ConvertRegistersToFloat(registers, _modbusItem.ByteOrder);
-                }
-                else if (_modbusItem.RegisterCount == 1)
-                {
-                    // 1 word = 16-bit integer (scaled by 10)
-                    temperature = registers[0] / 10.0;
-                }
-                else
-                {
-                    throw new NotSupportedException($"RegisterCount {_modbusItem.RegisterCount} is not supported");
-                }
+                var temperature = ConvertRegistersToTemperature(registers);
 
                 _modbusItem.TemperatureValue = temperature;
 
@@ -255,6 +248,75 @@ namespace LP2DTP.Common.Services
                 _isConnected = false;
                 throw new InvalidOperationException($"Modbus communication error: {ex.Message}", ex);
             }
+        }
+
+        private double ConvertRegistersToTemperature(ushort[] registers)
+        {
+            return _modbusItem.ItemType switch
+            {
+                ModbusItemType.Ohkura => ConvertRegistersToTemperatureOhkura(registers),
+                _ => ConvertRegistersToTemperatureKeyence(registers)
+            };
+        }
+
+        private double ConvertRegistersToTemperatureKeyence(ushort[] registers)
+        {
+            return ConvertRegistersToTemperatureCommon(registers);
+        }
+
+        private double ConvertRegistersToTemperatureOhkura(ushort[] registers)
+        {
+            return ConvertRegistersToTemperatureCommon(registers);
+        }
+
+        private double ConvertRegistersToTemperatureCommon(ushort[] registers)
+        {
+            if (_modbusItem.RegisterCount == 2)
+            {
+                // 2 words = 32-bit float
+                return ConvertRegistersToFloat(registers, _modbusItem.ByteOrder);
+            }
+
+            if (_modbusItem.RegisterCount == 1)
+            {
+                // 1 word = 16-bit integer (scaled by 10)
+                return registers[0] / 10.0;
+            }
+
+            throw new NotSupportedException($"RegisterCount {_modbusItem.RegisterCount} is not supported");
+        }
+
+        private (ushort PduAddress, byte FunctionCode) ResolveAddressAndFunction()
+        {
+            return _modbusItem.ItemType switch
+            {
+                ModbusItemType.Ohkura => ResolveAddressAndFunctionOhkura(),
+                _ => ResolveAddressAndFunctionKeyence()
+            };
+        }
+
+        private (ushort PduAddress, byte FunctionCode) ResolveAddressAndFunctionKeyence()
+        {
+            var pduAddress = ConvertModiconToPduAddress(_modbusItem.TemperatureRegisterAddress, out byte functionCode);
+
+            // Compatible behavior: when address is below 100000, use explicit function code.
+            if (_modbusItem.TemperatureRegisterAddress < 100000)
+            {
+                functionCode = _modbusItem.FunctionCode;
+            }
+
+            return (pduAddress, functionCode);
+        }
+
+        private (ushort PduAddress, byte FunctionCode) ResolveAddressAndFunctionOhkura()
+        {
+            if (_modbusItem.TemperatureRegisterAddress > ushort.MaxValue)
+            {
+                throw new InvalidOperationException(
+                    $"Ohkura mode requires raw PDU address (0-{ushort.MaxValue}). Current={_modbusItem.TemperatureRegisterAddress}");
+            }
+
+            return ((ushort)_modbusItem.TemperatureRegisterAddress, _modbusItem.FunctionCode);
         }
 
         /// <summary>
@@ -383,7 +445,6 @@ namespace LP2DTP.Common.Services
                 // Ignore stop errors during dispose
             }
 
-            _cancellationTokenSource?.Dispose();
             (_modbusCommunication as IDisposable)?.Dispose();
         }
     }

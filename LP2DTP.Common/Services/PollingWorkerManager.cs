@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using LP2DTP.Common.Models;
 using System.Collections.Concurrent;
@@ -14,6 +15,10 @@ namespace LP2DTP.Common.Services
         private readonly ConcurrentDictionary<string, IPollingWorker> _workers = new();
         private bool _disposed;
         private int _pollingIntervalMs = 1000;
+        private int _healthCheckIntervalMs = 5000;
+        private CancellationTokenSource? _loopCancellationTokenSource;
+        private Task? _loopTask;
+        private bool _isLoopRunning;
 
         public event EventHandler<PollingDataReceivedEventArgs>? DataReceived;
         public event EventHandler<PollingErrorEventArgs>? ErrorOccurred;
@@ -27,10 +32,25 @@ namespace LP2DTP.Common.Services
             set
             {
                 _pollingIntervalMs = value;
-                // Apply to existing workers
                 foreach (var worker in _workers.Values)
                 {
                     worker.PollingIntervalMs = value;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Health-check interval in milliseconds (applies to new and existing workers)
+        /// </summary>
+        public int HealthCheckIntervalMs
+        {
+            get => _healthCheckIntervalMs;
+            set
+            {
+                _healthCheckIntervalMs = value;
+                foreach (var worker in _workers.Values)
+                {
+                    worker.HealthCheckIntervalMs = value;
                 }
             }
         }
@@ -43,18 +63,7 @@ namespace LP2DTP.Common.Services
             if (item == null) throw new ArgumentNullException(nameof(item));
 
             var key = GetVisaItemKey(item);
-
-            if (_workers.ContainsKey(key))
-            {
-                RemoveVisaItem(item);
-            }
-
-            var worker = new PollingWorker(item);
-            worker.PollingIntervalMs = _pollingIntervalMs;
-            worker.DataReceived += Worker_DataReceived;
-            worker.ErrorOccurred += Worker_ErrorOccurred;
-
-            _workers[key] = worker;
+            AddWorker(key, new VisaPollingWorker(item));
         }
 
         /// <summary>
@@ -65,18 +74,7 @@ namespace LP2DTP.Common.Services
             if (item == null) throw new ArgumentNullException(nameof(item));
 
             var key = GetModbusItemKey(item);
-
-            if (_workers.ContainsKey(key))
-            {
-                RemoveModbusItem(item);
-            }
-
-            var worker = new ModbusPollingWorker(item);
-            worker.PollingIntervalMs = _pollingIntervalMs;
-            worker.DataReceived += Worker_DataReceived;
-            worker.ErrorOccurred += Worker_ErrorOccurred;
-
-            _workers[key] = worker;
+            AddWorker(key, new ModbusPollingWorker(item));
         }
 
         /// <summary>
@@ -85,25 +83,7 @@ namespace LP2DTP.Common.Services
         public void RemoveVisaItem(VisaItem item)
         {
             if (item == null) throw new ArgumentNullException(nameof(item));
-
-            var key = GetVisaItemKey(item);
-            
-            if (_workers.TryRemove(key, out var worker))
-            {
-                worker.DataReceived -= Worker_DataReceived;
-                worker.ErrorOccurred -= Worker_ErrorOccurred;
-
-                try
-                {
-                    worker.StopAsync().ConfigureAwait(false).GetAwaiter().GetResult();
-                }
-                catch
-                {
-                    // Ignore stop errors during removal
-                }
-
-                worker.Dispose();
-            }
+            RemoveWorker(GetVisaItemKey(item));
         }
 
         /// <summary>
@@ -112,25 +92,7 @@ namespace LP2DTP.Common.Services
         public void RemoveModbusItem(ModbusItem item)
         {
             if (item == null) throw new ArgumentNullException(nameof(item));
-
-            var key = GetModbusItemKey(item);
-            
-            if (_workers.TryRemove(key, out var worker))
-            {
-                worker.DataReceived -= Worker_DataReceived;
-                worker.ErrorOccurred -= Worker_ErrorOccurred;
-
-                try
-                {
-                    worker.StopAsync().ConfigureAwait(false).GetAwaiter().GetResult();
-                }
-                catch
-                {
-                    // Ignore stop errors during removal
-                }
-
-                worker.Dispose();
-            }
+            RemoveWorker(GetModbusItemKey(item));
         }
 
         /// <summary>
@@ -156,21 +118,124 @@ namespace LP2DTP.Common.Services
         }
 
         /// <summary>
-        /// Start all polling workers
+        /// Start unified polling loop for all workers
         /// </summary>
         public async Task StartAllAsync()
         {
-            var tasks = _workers.Values.Select(w => w.StartAsync());
-            await Task.WhenAll(tasks);
+            if (_isLoopRunning)
+            {
+                return;
+            }
+
+            _isLoopRunning = true;
+            await Task.WhenAll(_workers.Values.Select(w => w.StartAsync())).ConfigureAwait(false);
+
+            _loopCancellationTokenSource = new CancellationTokenSource();
+            _loopTask = Task.Run(() => UnifiedPollingLoopAsync(_loopCancellationTokenSource.Token), _loopCancellationTokenSource.Token);
         }
 
         /// <summary>
-        /// Stop all polling workers
+        /// Stop unified polling loop for all workers
         /// </summary>
         public async Task StopAllAsync()
         {
-            var tasks = _workers.Values.Select(w => w.StopAsync());
-            await Task.WhenAll(tasks);
+            _isLoopRunning = false;
+
+            if (_loopCancellationTokenSource != null)
+            {
+                _loopCancellationTokenSource.Cancel();
+
+                if (_loopTask != null)
+                {
+                    try
+                    {
+                        await _loopTask.ConfigureAwait(false);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        // Expected when cancelling
+                    }
+                }
+
+                _loopCancellationTokenSource.Dispose();
+                _loopCancellationTokenSource = null;
+                _loopTask = null;
+            }
+
+            await Task.WhenAll(_workers.Values.Select(w => w.StopAsync())).ConfigureAwait(false);
+        }
+
+        private void AddWorker(string key, IPollingWorker worker)
+        {
+            RemoveWorker(key);
+
+            worker.PollingIntervalMs = _pollingIntervalMs;
+            worker.HealthCheckIntervalMs = _healthCheckIntervalMs;
+            worker.DataReceived += Worker_DataReceived;
+            worker.ErrorOccurred += Worker_ErrorOccurred;
+
+            _workers[key] = worker;
+
+            if (_isLoopRunning)
+            {
+                worker.StartAsync().ConfigureAwait(false).GetAwaiter().GetResult();
+            }
+        }
+
+        private void RemoveWorker(string key)
+        {
+            if (_workers.TryRemove(key, out var worker))
+            {
+                worker.DataReceived -= Worker_DataReceived;
+                worker.ErrorOccurred -= Worker_ErrorOccurred;
+
+                try
+                {
+                    worker.StopAsync().ConfigureAwait(false).GetAwaiter().GetResult();
+                }
+                catch
+                {
+                    // Ignore stop errors during removal
+                }
+
+                worker.Dispose();
+            }
+        }
+
+        private async Task UnifiedPollingLoopAsync(CancellationToken cancellationToken)
+        {
+            while (!cancellationToken.IsCancellationRequested)
+            {
+                var workers = _workers.Values.Where(w => w.IsRunning).ToArray();
+                await Task.WhenAll(workers.Select(w => ExecuteWorkerCycleSafelyAsync(w, cancellationToken))).ConfigureAwait(false);
+                await Task.Delay(50, cancellationToken).ConfigureAwait(false);
+            }
+        }
+
+        private async Task ExecuteWorkerCycleSafelyAsync(IPollingWorker worker, CancellationToken cancellationToken)
+        {
+            try
+            {
+                await worker.ExecuteCycleAsync(cancellationToken).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                // Expected on stop
+            }
+            catch (Exception ex)
+            {
+                OnManagerErrorOccurred(ex);
+            }
+        }
+
+        private void OnManagerErrorOccurred(Exception ex)
+        {
+            ErrorOccurred?.Invoke(this, new PollingErrorEventArgs
+            {
+                ErrorMessage = ex.Message,
+                Exception = ex,
+                Timestamp = DateTime.Now
+            });
         }
 
         /// <summary>
@@ -207,20 +272,19 @@ namespace LP2DTP.Common.Services
         {
             if (_disposed) return;
 
+            try
+            {
+                StopAllAsync().ConfigureAwait(false).GetAwaiter().GetResult();
+            }
+            catch
+            {
+                // Ignore stop errors during dispose
+            }
+
             foreach (var worker in _workers.Values)
             {
                 worker.DataReceived -= Worker_DataReceived;
                 worker.ErrorOccurred -= Worker_ErrorOccurred;
-
-                try
-                {
-                    worker.StopAsync().ConfigureAwait(false).GetAwaiter().GetResult();
-                }
-                catch
-                {
-                    // Ignore stop errors during dispose
-                }
-
                 worker.Dispose();
             }
 

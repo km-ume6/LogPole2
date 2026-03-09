@@ -60,9 +60,9 @@ namespace LP2DTP
             {
                 ColumnDefinitions =
                 {
-                    new ColumnDefinition { Width = new GridLength(150) },
-                    new ColumnDefinition { Width = new GridLength(150) },
-                    new ColumnDefinition { Width = new GridLength(150) },
+                    new ColumnDefinition { Width = new GridLength(120) },
+                    new ColumnDefinition { Width = new GridLength(120) },
+                    new ColumnDefinition { Width = new GridLength(120) },
                     new ColumnDefinition { Width = new GridLength(80) },
                     new ColumnDefinition { Width = new GridLength(100) },
                     new ColumnDefinition { Width = new GridLength(100) },
@@ -101,7 +101,7 @@ namespace LP2DTP
                 {
                     new ColumnDefinition { Width = new GridLength(120) },
                     new ColumnDefinition { Width = new GridLength(120) },
-                    new ColumnDefinition { Width = new GridLength(150) },
+                    new ColumnDefinition { Width = new GridLength(120) },
                     new ColumnDefinition { Width = new GridLength(80) },
                     new ColumnDefinition { Width = new GridLength(100) },
                     new ColumnDefinition { Width = new GridLength(100) },
@@ -142,12 +142,33 @@ namespace LP2DTP
 
             // Temperature Register Address
             var regAddressBox = new NumberBox { Margin = new Thickness(4), Value = item.TemperatureRegisterAddress, Minimum = 0, Maximum = 499999 };
-            regAddressBox.ValueChanged += (s, e) => item.TemperatureRegisterAddress = (uint)regAddressBox.Value;
-            Grid.SetColumn(regAddressBox, 4);
-            itemGrid.Children.Add(regAddressBox);
 
             // Function Code
             var functionCodeBox = new NumberBox { Margin = new Thickness(4), Value = item.FunctionCode, Minimum = 1, Maximum = 127 };
+
+            bool IsFunctionCodeRequired()
+            {
+                if (item.ItemType == ModbusItemType.Ohkura)
+                {
+                    return true;
+                }
+
+                return item.TemperatureRegisterAddress < 100000;
+            }
+
+            void UpdateFunctionCodeBoxState()
+            {
+                functionCodeBox.IsEnabled = IsFunctionCodeRequired();
+            }
+
+            regAddressBox.ValueChanged += (s, e) =>
+            {
+                item.TemperatureRegisterAddress = (uint)regAddressBox.Value;
+                UpdateFunctionCodeBoxState();
+            };
+            Grid.SetColumn(regAddressBox, 4);
+            itemGrid.Children.Add(regAddressBox);
+
             functionCodeBox.ValueChanged += (s, e) => item.FunctionCode = (byte)functionCodeBox.Value;
             Grid.SetColumn(functionCodeBox, 5);
             itemGrid.Children.Add(functionCodeBox);
@@ -176,9 +197,15 @@ namespace LP2DTP
                 ItemsSource = Enum.GetValues(typeof(ModbusItemType)),
                 SelectedItem = item.ItemType
             };
-            itemTypeCombo.SelectionChanged += (s, e) => item.ItemType = (ModbusItemType)itemTypeCombo.SelectedItem;
+            itemTypeCombo.SelectionChanged += (s, e) =>
+            {
+                item.ItemType = (ModbusItemType)itemTypeCombo.SelectedItem;
+                UpdateFunctionCodeBoxState();
+            };
             Grid.SetColumn(itemTypeCombo, 8);
             itemGrid.Children.Add(itemTypeCombo);
+
+            UpdateFunctionCodeBoxState();
 
             // Is Enabled CheckBox
             var isEnabledCheck = new CheckBox { Margin = new Thickness(4, 8, 4, 4), IsChecked = item.IsEnabled };

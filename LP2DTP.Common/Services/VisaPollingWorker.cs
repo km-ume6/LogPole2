@@ -6,28 +6,30 @@ using LP2DTP.Common.Models;
 namespace LP2DTP.Common.Services
 {
     /// <summary>
-    /// Polling worker implementation
+    /// VISA polling worker implementation
     /// </summary>
-    public class PollingWorker : IPollingWorker
+    public class VisaPollingWorker : IPollingWorker
     {
         private readonly VisaItem _visaItem;
         private readonly IVisaCommunication _visaCommunication;
-        private CancellationTokenSource? _cancellationTokenSource;
-        private Task? _pollingTask;
         private bool _isRunning;
         private bool _isConnected;
+        private DateTime _nextPollingAtUtc = DateTime.MinValue;
+        private DateTime _nextHealthCheckAtUtc = DateTime.MinValue;
+        private bool _isEndpointAlive;
 
         public bool IsRunning => _isRunning;
         public int PollingIntervalMs { get; set; } = 1000;
+        public int HealthCheckIntervalMs { get; set; } = 5000;
 
         public event EventHandler<PollingDataReceivedEventArgs>? DataReceived;
         public event EventHandler<PollingErrorEventArgs>? ErrorOccurred;
 
-        public PollingWorker(VisaItem visaItem) : this(visaItem, new VisaTcpCommunication())
+        public VisaPollingWorker(VisaItem visaItem) : this(visaItem, new VisaTcpCommunication())
         {
         }
 
-        public PollingWorker(VisaItem visaItem, IVisaCommunication visaCommunication)
+        public VisaPollingWorker(VisaItem visaItem, IVisaCommunication visaCommunication)
         {
             _visaItem = visaItem ?? throw new ArgumentNullException(nameof(visaItem));
             _visaCommunication = visaCommunication ?? throw new ArgumentNullException(nameof(visaCommunication));
@@ -41,8 +43,9 @@ namespace LP2DTP.Common.Services
             }
 
             _isRunning = true;
-            _cancellationTokenSource = new CancellationTokenSource();
-            _pollingTask = Task.Run(() => PollingLoopAsync(_cancellationTokenSource.Token), _cancellationTokenSource.Token);
+            _isEndpointAlive = true;
+            _nextHealthCheckAtUtc = DateTime.UtcNow;
+            _nextPollingAtUtc = DateTime.UtcNow.AddMilliseconds(CalculateInitialDelay());
             return Task.CompletedTask;
         }
 
@@ -54,28 +57,6 @@ namespace LP2DTP.Common.Services
             }
 
             _isRunning = false;
-
-            if (_cancellationTokenSource != null)
-            {
-                _cancellationTokenSource.Cancel();
-
-                if (_pollingTask != null)
-                {
-                    try
-                    {
-                        await _pollingTask.ConfigureAwait(false);
-                    }
-                    catch (OperationCanceledException)
-                    {
-                        // Expected when cancelling
-                    }
-                }
-
-                _cancellationTokenSource.Dispose();
-                _cancellationTokenSource = null;
-            }
-
-            _pollingTask = null;
 
             // Close VISA connection
             try
@@ -89,67 +70,103 @@ namespace LP2DTP.Common.Services
             }
         }
 
-        private async Task PollingLoopAsync(CancellationToken cancellationToken)
+        public async Task ExecuteCycleAsync(CancellationToken cancellationToken)
         {
-            // Wait until next aligned time before starting first poll
-            var initialDelay = CalculateInitialDelay();
-            if (initialDelay > 0)
+            if (!_isRunning)
             {
-                try
-                {
-                    await Task.Delay(initialDelay, cancellationToken);
-                }
-                catch (OperationCanceledException)
-                {
-                    return;
-                }
+                return;
             }
 
-            while (!cancellationToken.IsCancellationRequested)
+            var now = DateTime.UtcNow;
+
+            if (now >= _nextHealthCheckAtUtc)
             {
-                try
-                {
-                    if (_visaItem.IsEnabled)
-                    {
-                        await ExecutePollingAsync(cancellationToken);
-                    }
-                    else if (_isConnected)
-                    {
-                        // Ensure no VISA connection is kept while item is disabled
-                        await _visaCommunication.CloseAsync().ConfigureAwait(false);
-                        _isConnected = false;
-                    }
+                _isEndpointAlive = await CheckEndpointAliveAsync(cancellationToken).ConfigureAwait(false);
+                _nextHealthCheckAtUtc = DateTime.UtcNow.AddMilliseconds(Math.Max(1, HealthCheckIntervalMs));
+            }
 
-                    await Task.Delay(PollingIntervalMs, cancellationToken);
-                }
-                catch (OperationCanceledException)
+            if (!_isEndpointAlive)
+            {
+                if (_isConnected)
                 {
-                    // Expected when stopping
-                    break;
+                    await _visaCommunication.CloseAsync().ConfigureAwait(false);
+                    _isConnected = false;
                 }
-                catch (Exception ex)
-                {
-                    OnErrorOccurred(new PollingErrorEventArgs
-                    {
-                        MachineName = _visaItem.Device.MachineName,
-                        UnitName = _visaItem.Device.UnitName,
-                        IpAddress = _visaItem.Device.IpAddress,
-                        Command = _visaItem.CommandCurr,
-                        Exception = ex,
-                        ErrorMessage = ex.Message,
-                        Timestamp = DateTime.Now
-                    });
 
-                    // Continue polling even after error
-                    await Task.Delay(PollingIntervalMs, cancellationToken);
+                return;
+            }
+
+            if (now < _nextPollingAtUtc)
+            {
+                return;
+            }
+
+            await ExecuteSingleCycleAsync(cancellationToken).ConfigureAwait(false);
+            _nextPollingAtUtc = DateTime.UtcNow.AddMilliseconds(Math.Max(1, PollingIntervalMs));
+        }
+
+        private async Task<bool> CheckEndpointAliveAsync(CancellationToken cancellationToken)
+        {
+            if (_isConnected && _visaCommunication.IsConnected)
+            {
+                return true;
+            }
+
+            try
+            {
+                var resourceName = $"TCPIP::{_visaItem.Device.IpAddress}::5025::SOCKET";
+                var connected = await _visaCommunication.OpenAsync(resourceName).ConfigureAwait(false);
+                if (!connected)
+                {
+                    return false;
                 }
+
+                await _visaCommunication.CloseAsync().ConfigureAwait(false);
+                _isConnected = false;
+                return true;
+            }
+            catch
+            {
+                _isConnected = false;
+                return false;
+            }
+        }
+
+        private async Task ExecuteSingleCycleAsync(CancellationToken cancellationToken)
+        {
+            try
+            {
+                if (_visaItem.IsEnabled)
+                {
+                    await ExecutePollingAsync(cancellationToken).ConfigureAwait(false);
+                }
+                else if (_isConnected)
+                {
+                    // Ensure no VISA connection is kept while item is disabled
+                    await _visaCommunication.CloseAsync().ConfigureAwait(false);
+                    _isConnected = false;
+                }
+            }
+            catch (Exception ex)
+            {
+                _isEndpointAlive = false;
+                OnErrorOccurred(new PollingErrorEventArgs
+                {
+                    MachineName = _visaItem.Device.MachineName,
+                    UnitName = _visaItem.Device.UnitName,
+                    IpAddress = _visaItem.Device.IpAddress,
+                    Command = _visaItem.CommandCurr,
+                    Exception = ex,
+                    ErrorMessage = ex.Message,
+                    Timestamp = DateTime.Now
+                });
             }
         }
 
         private int CalculateInitialDelay()
         {
             var now = DateTime.Now;
-            var intervalMs = PollingIntervalMs;
+            var intervalMs = Math.Max(1, PollingIntervalMs);
 
             // Calculate milliseconds since midnight
             var nowMs = (long)now.TimeOfDay.TotalMilliseconds;
@@ -232,8 +249,8 @@ namespace LP2DTP.Common.Services
                         Timestamp = DateTime.Now
                     });
                 }
-			}
-			catch (Exception ex)
+            }
+            catch (Exception ex)
             {
                 // Connection lost, mark as disconnected
                 _isConnected = false;
@@ -282,7 +299,6 @@ namespace LP2DTP.Common.Services
                 // Ignore stop errors during dispose
             }
 
-            _cancellationTokenSource?.Dispose();
             (_visaCommunication as IDisposable)?.Dispose();
         }
     }

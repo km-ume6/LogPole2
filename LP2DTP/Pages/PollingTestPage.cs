@@ -179,16 +179,18 @@ namespace LP2DTP.Pages
         {
             try
             {
-                // Load settings and apply polling interval
+                // Load settings and apply polling/health-check intervals
                 var settings = await _settingsService.LoadSettingsAsync();
                 _pollingManager.PollingIntervalMs = settings.PollingIntervalMs;
+                _pollingManager.HealthCheckIntervalMs = settings.HealthCheckIntervalMs;
 
-                UpdateStatus($"Page loaded. Polling interval: {settings.PollingIntervalMs}ms. Click 'Load Data' to begin.", false);
+                UpdateStatus($"Page loaded. Polling: {settings.PollingIntervalMs}ms / HealthCheck: {settings.HealthCheckIntervalMs}ms. Click 'Load Data' to begin.", false);
             }
             catch (Exception ex)
             {
-                UpdateStatus($"Error loading settings: {ex.Message}. Using default: 1000ms", true);
-                _pollingManager.PollingIntervalMs = 1000; // Fallback to default
+                UpdateStatus($"Error loading settings: {ex.Message}. Using defaults.", true);
+                _pollingManager.PollingIntervalMs = 1000;
+                _pollingManager.HealthCheckIntervalMs = 5000;
             }
         }
 
