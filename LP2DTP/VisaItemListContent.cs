@@ -14,6 +14,9 @@ namespace LP2DTP
     {
         private StackPanel _itemsStackPanel;
         private TextBlock _statusTextBlock;
+        private string _currentSortColumn;
+        private bool _isAscending = true;
+        
         public VisaItemListViewModel ViewModel { get; }
 
         public VisaItemListContent()
@@ -74,19 +77,114 @@ namespace LP2DTP
             };
 
             var headers = new[] { "Machine Name", "Unit Name", "IP Address", "Command Curr", "Command Volt", "Item Type", "Enabled", "Action" };
+            var sortColumns = new[] { "MachineName", "UnitName", "IpAddress", "CommandCurr", "CommandVolt", "ItemType", "Enabled", "" };
+            
             for (int i = 0; i < headers.Length; i++)
             {
-                var headerText = new TextBlock
+                if (i < headers.Length - 1) // Skip Action column
                 {
-                    Text = headers[i],
-                    Margin = new Thickness(4),
-                    Foreground = new SolidColorBrush(new Windows.UI.Color { A = 255, R = 255, G = 255, B = 255 })
-                };
-                Grid.SetColumn(headerText, i);
-                headerGrid.Children.Add(headerText);
+                    var headerButton = new Button
+                    {
+                        Content = CreateHeaderContent(headers[i], sortColumns[i]),
+                        Margin = new Thickness(2),
+                        HorizontalAlignment = HorizontalAlignment.Stretch,
+                        HorizontalContentAlignment = HorizontalAlignment.Left,
+                        Background = new SolidColorBrush(new Windows.UI.Color { A = 0, R = 0, G = 0, B = 0 }),
+                        BorderThickness = new Thickness(0),
+                        Foreground = new SolidColorBrush(new Windows.UI.Color { A = 255, R = 255, G = 255, B = 255 })
+                    };
+                    
+                    var columnName = sortColumns[i];
+                    headerButton.Click += (s, e) => SortByColumn(columnName);
+                    
+                    Grid.SetColumn(headerButton, i);
+                    headerGrid.Children.Add(headerButton);
+                }
+                else
+                {
+                    var headerText = new TextBlock
+                    {
+                        Text = headers[i],
+                        Margin = new Thickness(4),
+                        Foreground = new SolidColorBrush(new Windows.UI.Color { A = 255, R = 255, G = 255, B = 255 })
+                    };
+                    Grid.SetColumn(headerText, i);
+                    headerGrid.Children.Add(headerText);
+                }
             }
 
             return headerGrid;
+        }
+
+        private StackPanel CreateHeaderContent(string headerText, string columnName)
+        {
+            var panel = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                Spacing = 4
+            };
+
+            panel.Children.Add(new TextBlock { Text = headerText });
+
+            if (_currentSortColumn == columnName)
+            {
+                var arrow = new TextBlock
+                {
+                    Text = _isAscending ? "▲" : "▼",
+                    FontSize = 10
+                };
+                panel.Children.Add(arrow);
+            }
+
+            return panel;
+        }
+
+        private void SortByColumn(string columnName)
+        {
+            if (_currentSortColumn == columnName)
+            {
+                _isAscending = !_isAscending;
+            }
+            else
+            {
+                _currentSortColumn = columnName;
+                _isAscending = true;
+            }
+
+            var sortedItems = columnName switch
+            {
+                "MachineName" => _isAscending 
+                    ? ViewModel.Items.OrderBy(x => x.Device.MachineName).ToList()
+                    : ViewModel.Items.OrderByDescending(x => x.Device.MachineName).ToList(),
+                "UnitName" => _isAscending
+                    ? ViewModel.Items.OrderBy(x => x.Device.UnitName).ToList()
+                    : ViewModel.Items.OrderByDescending(x => x.Device.UnitName).ToList(),
+                "IpAddress" => _isAscending
+                    ? ViewModel.Items.OrderBy(x => x.Device.IpAddress).ToList()
+                    : ViewModel.Items.OrderByDescending(x => x.Device.IpAddress).ToList(),
+                "CommandCurr" => _isAscending
+                    ? ViewModel.Items.OrderBy(x => x.CommandCurr).ToList()
+                    : ViewModel.Items.OrderByDescending(x => x.CommandCurr).ToList(),
+                "CommandVolt" => _isAscending
+                    ? ViewModel.Items.OrderBy(x => x.CommandVolt).ToList()
+                    : ViewModel.Items.OrderByDescending(x => x.CommandVolt).ToList(),
+                "ItemType" => _isAscending
+                    ? ViewModel.Items.OrderBy(x => x.ItemType).ToList()
+                    : ViewModel.Items.OrderByDescending(x => x.ItemType).ToList(),
+                "Enabled" => _isAscending
+                    ? ViewModel.Items.OrderBy(x => x.IsEnabled).ToList()
+                    : ViewModel.Items.OrderByDescending(x => x.IsEnabled).ToList(),
+                _ => ViewModel.Items.ToList()
+            };
+
+            ViewModel.Items.Clear();
+            foreach (var item in sortedItems)
+            {
+                ViewModel.Items.Add(item);
+            }
+
+            RefreshItemsList();
+            UpdateStatus($"Sorted by {columnName} ({(_isAscending ? "ascending" : "descending")})");
         }
 
         private Grid CreateItemRow(VisaItem item)

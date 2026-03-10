@@ -45,7 +45,7 @@ namespace LP2DTP.Common.Services
             _isRunning = true;
             _isEndpointAlive = true;
             _nextHealthCheckAtUtc = DateTime.UtcNow;
-            _nextPollingAtUtc = DateTime.UtcNow.AddMilliseconds(CalculateInitialDelay());
+            _nextPollingAtUtc = GetNextAlignedPollingTimeUtc(DateTime.UtcNow);
             return Task.CompletedTask;
         }
 
@@ -102,7 +102,20 @@ namespace LP2DTP.Common.Services
             }
 
             await ExecuteSingleCycleAsync(cancellationToken).ConfigureAwait(false);
-            _nextPollingAtUtc = DateTime.UtcNow.AddMilliseconds(Math.Max(1, PollingIntervalMs));
+
+            var interval = TimeSpan.FromMilliseconds(Math.Max(1, PollingIntervalMs));
+            do
+            {
+                _nextPollingAtUtc = _nextPollingAtUtc.Add(interval);
+            }
+            while (_nextPollingAtUtc <= DateTime.UtcNow);
+        }
+
+        private DateTime GetNextAlignedPollingTimeUtc(DateTime utcNow)
+        {
+            var intervalTicks = TimeSpan.FromMilliseconds(Math.Max(1, PollingIntervalMs)).Ticks;
+            var nextTicks = ((utcNow.Ticks + intervalTicks - 1) / intervalTicks) * intervalTicks;
+            return new DateTime(nextTicks, DateTimeKind.Utc);
         }
 
         private async Task<bool> CheckEndpointAliveAsync(CancellationToken cancellationToken)
@@ -161,33 +174,6 @@ namespace LP2DTP.Common.Services
                     Timestamp = DateTime.Now
                 });
             }
-        }
-
-        private int CalculateInitialDelay()
-        {
-            var now = DateTime.Now;
-            var intervalMs = Math.Max(1, PollingIntervalMs);
-
-            // Calculate milliseconds since midnight
-            var nowMs = (long)now.TimeOfDay.TotalMilliseconds;
-
-            // Calculate next aligned time (round up to next interval)
-            var nextMs = (long)(Math.Ceiling((double)nowMs / intervalMs) * intervalMs);
-
-            // Handle day overflow (if next time is past midnight)
-            if (nextMs >= 86400000) // 24 hours in milliseconds
-            {
-                nextMs = 0; // Start at midnight
-            }
-
-            // Calculate delay
-            var delayMs = nextMs - nowMs;
-            if (delayMs < 0)
-            {
-                delayMs += 86400000; // Add 24 hours
-            }
-
-            return (int)delayMs;
         }
 
         private async Task ExecutePollingAsync(CancellationToken cancellationToken)

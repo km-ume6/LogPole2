@@ -141,15 +141,18 @@ namespace LP2DTP.Common.Services
         {
             _isLoopRunning = false;
 
-            if (_loopCancellationTokenSource != null)
-            {
-                _loopCancellationTokenSource.Cancel();
+            var cancellationTokenSource = Interlocked.Exchange(ref _loopCancellationTokenSource, null);
+            var loopTask = Interlocked.Exchange(ref _loopTask, null);
 
-                if (_loopTask != null)
+            if (cancellationTokenSource != null)
+            {
+                cancellationTokenSource.Cancel();
+
+                if (loopTask != null)
                 {
                     try
                     {
-                        await _loopTask.ConfigureAwait(false);
+                        await loopTask.ConfigureAwait(false);
                     }
                     catch (OperationCanceledException)
                     {
@@ -157,9 +160,7 @@ namespace LP2DTP.Common.Services
                     }
                 }
 
-                _loopCancellationTokenSource.Dispose();
-                _loopCancellationTokenSource = null;
-                _loopTask = null;
+                cancellationTokenSource.Dispose();
             }
 
             await Task.WhenAll(_workers.Values.Select(w => w.StopAsync())).ConfigureAwait(false);

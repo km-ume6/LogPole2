@@ -45,7 +45,7 @@ namespace LP2DTP.Common.Services
             _isRunning = true;
             _isEndpointAlive = true;
             _nextHealthCheckAtUtc = DateTime.UtcNow;
-            _nextPollingAtUtc = DateTime.UtcNow.AddMilliseconds(CalculateInitialDelay());
+            _nextPollingAtUtc = GetNextAlignedPollingTimeUtc(DateTime.UtcNow);
             return Task.CompletedTask;
         }
 
@@ -102,31 +102,30 @@ namespace LP2DTP.Common.Services
             }
 
             await ExecuteSingleCycleAsync(cancellationToken).ConfigureAwait(false);
-            _nextPollingAtUtc = DateTime.UtcNow.AddMilliseconds(Math.Max(1, PollingIntervalMs));
+
+            var interval = TimeSpan.FromMilliseconds(Math.Max(1, PollingIntervalMs));
+            do
+            {
+                _nextPollingAtUtc = _nextPollingAtUtc.Add(interval);
+            }
+            while (_nextPollingAtUtc <= DateTime.UtcNow);
+        }
+
+        private DateTime GetNextAlignedPollingTimeUtc(DateTime utcNow)
+        {
+            var intervalTicks = TimeSpan.FromMilliseconds(Math.Max(1, PollingIntervalMs)).Ticks;
+            var nextTicks = ((utcNow.Ticks + intervalTicks - 1) / intervalTicks) * intervalTicks;
+            return new DateTime(nextTicks, DateTimeKind.Utc);
         }
 
         private async Task<bool> CheckEndpointAliveAsync(CancellationToken cancellationToken)
         {
-            if (_isConnected && _modbusCommunication.IsConnected)
-            {
-                return true;
-            }
-
             try
             {
-                var connected = await _modbusCommunication.ConnectAsync(_modbusItem.Device.IpAddress).ConfigureAwait(false);
-                if (!connected)
-                {
-                    return false;
-                }
-
-                await _modbusCommunication.DisconnectAsync().ConfigureAwait(false);
-                _isConnected = false;
-                return true;
+                return await _modbusCommunication.ConnectAsync(_modbusItem.Device.IpAddress);
             }
             catch
             {
-                _isConnected = false;
                 return false;
             }
         }
