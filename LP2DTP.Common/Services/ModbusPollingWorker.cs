@@ -1,4 +1,5 @@
 using System;
+using System.Net.NetworkInformation;
 using System.Threading;
 using System.Threading.Tasks;
 using LP2DTP.Common.Models;
@@ -8,22 +9,20 @@ namespace LP2DTP.Common.Services
     /// <summary>
     /// Modbus TCP polling worker implementation
     /// </summary>
-    public class ModbusPollingWorker : IPollingWorker
+    public class ModbusPollingWorker : PollingWorkerBase
     {
         private readonly ModbusItem _modbusItem;
         private readonly IModbusCommunication _modbusCommunication;
-        private bool _isRunning;
         private bool _isConnected;
-        private DateTime _nextPollingAtUtc = DateTime.MinValue;
-        private DateTime _nextHealthCheckAtUtc = DateTime.MinValue;
-        private bool _isEndpointAlive;
+        private readonly PollingLogService _logService = PollingLogService.Instance;
 
-        public bool IsRunning => _isRunning;
-        public int PollingIntervalMs { get; set; } = 1000;
-        public int HealthCheckIntervalMs { get; set; } = 5000;
+        public override event EventHandler<PollingDataReceivedEventArgs>? DataReceived;
+        public override event EventHandler<PollingErrorEventArgs>? ErrorOccurred;
 
-        public event EventHandler<PollingDataReceivedEventArgs>? DataReceived;
-        public event EventHandler<PollingErrorEventArgs>? ErrorOccurred;
+        private void LogMessage(string message, string level = "INFO")
+        {
+            _logService.Log(level, "MODBUS", _modbusItem.Device.MachineName, message);
+        }
 
         public ModbusPollingWorker(ModbusItem modbusItem) : this(modbusItem, new ModbusTcpCommunication())
         {
@@ -35,169 +34,63 @@ namespace LP2DTP.Common.Services
             _modbusCommunication = modbusCommunication ?? throw new ArgumentNullException(nameof(modbusCommunication));
         }
 
-        public Task StartAsync()
-        {
-            if (_isRunning)
-            {
-                return Task.CompletedTask;
-            }
+        protected override bool IsItemEnabled => _modbusItem.IsEnabled;
 
-            _isRunning = true;
-            _isEndpointAlive = true;
-            _nextHealthCheckAtUtc = DateTime.UtcNow;
-            _nextPollingAtUtc = GetNextAlignedPollingTimeUtc(DateTime.UtcNow);
-            return Task.CompletedTask;
-        }
+        protected override bool IsConnectionOpen => _isConnected;
 
-        public async Task StopAsync()
-        {
-            if (!_isRunning)
-            {
-                return;
-            }
-
-            _isRunning = false;
-
-            // Close Modbus connection
-            try
-            {
-                await _modbusCommunication.DisconnectAsync().ConfigureAwait(false);
-                _isConnected = false;
-            }
-            catch
-            {
-                // Ignore errors during cleanup
-            }
-        }
-
-        public async Task ExecuteCycleAsync(CancellationToken cancellationToken)
-        {
-            if (!_isRunning)
-            {
-                return;
-            }
-
-            var now = DateTime.UtcNow;
-
-            if (now >= _nextHealthCheckAtUtc)
-            {
-                _isEndpointAlive = await CheckEndpointAliveAsync(cancellationToken).ConfigureAwait(false);
-                _nextHealthCheckAtUtc = DateTime.UtcNow.AddMilliseconds(Math.Max(1, HealthCheckIntervalMs));
-            }
-
-            if (!_isEndpointAlive)
-            {
-                if (_isConnected)
-                {
-                    await _modbusCommunication.DisconnectAsync().ConfigureAwait(false);
-                    _isConnected = false;
-                }
-
-                return;
-            }
-
-            if (now < _nextPollingAtUtc)
-            {
-                return;
-            }
-
-            await ExecuteSingleCycleAsync(cancellationToken).ConfigureAwait(false);
-
-            var interval = TimeSpan.FromMilliseconds(Math.Max(1, PollingIntervalMs));
-            do
-            {
-                _nextPollingAtUtc = _nextPollingAtUtc.Add(interval);
-            }
-            while (_nextPollingAtUtc <= DateTime.UtcNow);
-        }
-
-        private DateTime GetNextAlignedPollingTimeUtc(DateTime utcNow)
-        {
-            var intervalTicks = TimeSpan.FromMilliseconds(Math.Max(1, PollingIntervalMs)).Ticks;
-            var nextTicks = ((utcNow.Ticks + intervalTicks - 1) / intervalTicks) * intervalTicks;
-            return new DateTime(nextTicks, DateTimeKind.Utc);
-        }
-
-        private async Task<bool> CheckEndpointAliveAsync(CancellationToken cancellationToken)
+        protected override async Task<bool> CheckEndpointAliveAsync(CancellationToken cancellationToken)
         {
             try
             {
-                return await _modbusCommunication.ConnectAsync(_modbusItem.Device.IpAddress);
-            }
-            catch
-            {
-                return false;
-            }
-        }
-
-        private async Task ExecuteSingleCycleAsync(CancellationToken cancellationToken)
-        {
-            try
-            {
-                if (_modbusItem.IsEnabled)
+                LogMessage($"Pinging {_modbusItem.Device.IpAddress}");
+                
+                using (var ping = new Ping())
                 {
-                    await ExecutePollingAsync(cancellationToken).ConfigureAwait(false);
-                }
-                else if (_isConnected)
-                {
-                    // Ensure no Modbus connection is kept while item is disabled
-                    await _modbusCommunication.DisconnectAsync().ConfigureAwait(false);
-                    _isConnected = false;
+                    var reply = await ping.SendPingAsync(_modbusItem.Device.IpAddress, 2000);
+                    
+                    if (reply.Status == IPStatus.Success)
+                    {
+                        LogMessage($"Ping OK (RTT={reply.RoundtripTime}ms)");
+                        return true;
+                    }
+                    else
+                    {
+                        LogMessage($"Ping failed: {reply.Status}", "WARNING");
+                        _isConnected = false;
+                        return false;
+                    }
                 }
             }
             catch (Exception ex)
             {
-                _isEndpointAlive = false;
-                OnErrorOccurred(new PollingErrorEventArgs
-                {
-                    MachineName = _modbusItem.Device.MachineName,
-                    UnitName = _modbusItem.Device.UnitName,
-                    IpAddress = _modbusItem.Device.IpAddress,
-                    Command = $"Unit {_modbusItem.UnitId}, Reg {_modbusItem.TemperatureRegisterAddress}",
-                    Exception = ex,
-                    ErrorMessage = ex.Message,
-                    Timestamp = DateTime.Now
-                });
+                LogMessage($"Health check error: {ex.Message}", "ERROR");
+                _isConnected = false;
+                return false;
             }
         }
 
-        private int CalculateInitialDelay()
-        {
-            var now = DateTime.Now;
-            var intervalMs = Math.Max(1, PollingIntervalMs);
-
-            // Calculate milliseconds since midnight
-            var nowMs = (long)now.TimeOfDay.TotalMilliseconds;
-
-            // Calculate next aligned time (round up to next interval)
-            var nextMs = (long)(Math.Ceiling((double)nowMs / intervalMs) * intervalMs);
-
-            // Handle day overflow (if next time is past midnight)
-            if (nextMs >= 86400000) // 24 hours in milliseconds
-            {
-                nextMs = 0; // Start at midnight
-            }
-
-            // Calculate delay
-            var delayMs = nextMs - nowMs;
-            if (delayMs < 0)
-            {
-                delayMs += 86400000; // Add 24 hours
-            }
-
-            return (int)delayMs;
-        }
-
-        private async Task ExecutePollingAsync(CancellationToken cancellationToken)
+        protected override async Task ExecutePollingAsync(CancellationToken cancellationToken)
         {
             if (!_isConnected || !_modbusCommunication.IsConnected)
             {
-                // Try to connect
-                _isConnected = await _modbusCommunication.ConnectAsync(_modbusItem.Device.IpAddress);
-
-                if (!_isConnected)
+                LogMessage($"Connecting to {_modbusItem.Device.IpAddress}:502");
+                
+                try
                 {
-                    throw new InvalidOperationException("Not connected to Modbus device");
+                    _isConnected = await _modbusCommunication.ConnectAsync(_modbusItem.Device.IpAddress).ConfigureAwait(false);
+
+                    if (!_isConnected)
+                    {
+                        LogMessage("Connection failed: ConnectAsync returned false", "ERROR");
+                        throw new InvalidOperationException("Not connected to Modbus device");
+                    }
+                    LogMessage("Connected successfully");
+                }
+                catch (Exception ex)
+                {
+                    LogMessage($"Connection error: {ex.GetType().Name} - {ex.Message}", "ERROR");
+                    _isConnected = false;
+                    throw;
                 }
             }
 
@@ -205,22 +98,23 @@ namespace LP2DTP.Common.Services
             {
                 var (pduAddress, functionCode) = ResolveAddressAndFunction();
 
-                // Read temperature register
                 ushort[] registers;
+
+                LogMessage($"Reading FC{functionCode} Unit{_modbusItem.UnitId} Reg{pduAddress} Count{_modbusItem.RegisterCount}");
 
                 if (functionCode == 3)
                 {
                     registers = await _modbusCommunication.ReadHoldingRegistersAsync(
                         _modbusItem.UnitId,
                         pduAddress,
-                        _modbusItem.RegisterCount);
+                        _modbusItem.RegisterCount).ConfigureAwait(false);
                 }
                 else if (functionCode == 4)
                 {
                     registers = await _modbusCommunication.ReadInputRegistersAsync(
                         _modbusItem.UnitId,
                         pduAddress,
-                        _modbusItem.RegisterCount);
+                        _modbusItem.RegisterCount).ConfigureAwait(false);
                 }
                 else
                 {
@@ -230,6 +124,7 @@ namespace LP2DTP.Common.Services
                 var temperature = ConvertRegistersToTemperature(registers);
 
                 _modbusItem.TemperatureValue = temperature;
+                LogMessage($"Temperature: {temperature:F2}°C");
 
                 OnDataReceived(new PollingDataReceivedEventArgs
                 {
@@ -243,10 +138,32 @@ namespace LP2DTP.Common.Services
             }
             catch (Exception ex)
             {
-                // Connection lost, mark as disconnected
+                LogMessage($"Polling error: {ex.GetType().Name} - {ex.Message}", "ERROR");
                 _isConnected = false;
                 throw new InvalidOperationException($"Modbus communication error: {ex.Message}", ex);
             }
+        }
+
+        protected override async Task DisconnectAsync()
+        {
+            LogMessage("Disconnecting");
+            await _modbusCommunication.DisconnectAsync().ConfigureAwait(false);
+            _isConnected = false;
+        }
+
+        protected override void OnPollingError(Exception ex)
+        {
+            LogMessage($"Error: {ex.Message}", "ERROR");
+            OnErrorOccurred(new PollingErrorEventArgs
+            {
+                MachineName = _modbusItem.Device.MachineName,
+                UnitName = _modbusItem.Device.UnitName,
+                IpAddress = _modbusItem.Device.IpAddress,
+                Command = $"Unit {_modbusItem.UnitId}, Reg {_modbusItem.TemperatureRegisterAddress}",
+                Exception = ex,
+                ErrorMessage = ex.Message,
+                Timestamp = DateTime.Now
+            });
         }
 
         private double ConvertRegistersToTemperature(ushort[] registers)
@@ -272,13 +189,11 @@ namespace LP2DTP.Common.Services
         {
             if (_modbusItem.RegisterCount == 2)
             {
-                // 2 words = 32-bit float
                 return ConvertRegistersToFloat(registers, _modbusItem.ByteOrder);
             }
 
             if (_modbusItem.RegisterCount == 1)
             {
-                // 1 word = 16-bit integer (scaled by 10)
                 return registers[0] / 10.0;
             }
 
@@ -298,7 +213,6 @@ namespace LP2DTP.Common.Services
         {
             var pduAddress = ConvertModiconToPduAddress(_modbusItem.TemperatureRegisterAddress, out byte functionCode);
 
-            // Compatible behavior: when address is below 100000, use explicit function code.
             if (_modbusItem.TemperatureRegisterAddress < 100000)
             {
                 functionCode = _modbusItem.FunctionCode;
@@ -333,31 +247,30 @@ namespace LP2DTP.Common.Services
 
             byte[] bytes = new byte[4];
 
-            // Convert based on byte order
             switch (byteOrder)
             {
-                case 0: // ABCD (Big-Endian)
+                case 0:
                     bytes[0] = (byte)(registers[0] >> 8);
                     bytes[1] = (byte)(registers[0] & 0xFF);
                     bytes[2] = (byte)(registers[1] >> 8);
                     bytes[3] = (byte)(registers[1] & 0xFF);
                     break;
 
-                case 1: // DCBA (Little-Endian)
+                case 1:
                     bytes[0] = (byte)(registers[1] & 0xFF);
                     bytes[1] = (byte)(registers[1] >> 8);
                     bytes[2] = (byte)(registers[0] & 0xFF);
                     bytes[3] = (byte)(registers[0] >> 8);
                     break;
 
-                case 2: // BADC (Big-Endian Byte Swap)
+                case 2:
                     bytes[0] = (byte)(registers[0] & 0xFF);
                     bytes[1] = (byte)(registers[0] >> 8);
                     bytes[2] = (byte)(registers[1] & 0xFF);
                     bytes[3] = (byte)(registers[1] >> 8);
                     break;
 
-                case 3: // CDAB (Little-Endian Byte Swap)
+                case 3:
                     bytes[0] = (byte)(registers[1] >> 8);
                     bytes[1] = (byte)(registers[1] & 0xFF);
                     bytes[2] = (byte)(registers[0] >> 8);
@@ -368,7 +281,6 @@ namespace LP2DTP.Common.Services
                     throw new ArgumentException($"Invalid byte order: {byteOrder}");
             }
 
-            // Convert bytes to float
             if (BitConverter.IsLittleEndian)
             {
                 Array.Reverse(bytes);
@@ -385,40 +297,29 @@ namespace LP2DTP.Common.Services
         /// <returns>PDU address (0-65535)</returns>
         private ushort ConvertModiconToPduAddress(uint modiconAddress, out byte functionCode)
         {
-            // Modicon address format:
-            // 000001-099999: Coils (FC 01)
-            // 100001-199999: Discrete Inputs (FC 02)
-            // 300001-399999: Input Registers (FC 04)
-            // 400001-499999: Holding Registers (FC 03)
-
             if (modiconAddress >= 400001 && modiconAddress <= 499999)
             {
-                // Holding Registers
                 functionCode = 3;
                 return (ushort)(modiconAddress - 400001);
             }
             else if (modiconAddress >= 300001 && modiconAddress <= 399999)
             {
-                // Input Registers
                 functionCode = 4;
                 return (ushort)(modiconAddress - 300001);
             }
             else if (modiconAddress >= 100001 && modiconAddress <= 199999)
             {
-                // Discrete Inputs
                 functionCode = 2;
                 return (ushort)(modiconAddress - 100001);
             }
             else if (modiconAddress >= 1 && modiconAddress <= 99999)
             {
-                // Coils
                 functionCode = 1;
                 return (ushort)(modiconAddress - 1);
             }
             else
             {
-                // If not in Modicon format, treat as raw PDU address
-                functionCode = 3; // Default to Holding Registers
+                functionCode = 3;
                 return (ushort)(modiconAddress & 0xFFFF);
             }
         }
@@ -433,17 +334,8 @@ namespace LP2DTP.Common.Services
             ErrorOccurred?.Invoke(this, e);
         }
 
-        public void Dispose()
+        protected override void DisposeCore()
         {
-            try
-            {
-                StopAsync().ConfigureAwait(false).GetAwaiter().GetResult();
-            }
-            catch
-            {
-                // Ignore stop errors during dispose
-            }
-
             (_modbusCommunication as IDisposable)?.Dispose();
         }
     }

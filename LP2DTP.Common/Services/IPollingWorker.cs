@@ -45,6 +45,26 @@ namespace LP2DTP.Common.Services
         event EventHandler<PollingErrorEventArgs>? ErrorOccurred;
 
         /// <summary>
+        /// Returns whether health-check should run at the specified UTC time.
+        /// </summary>
+        bool IsHealthCheckDue(DateTime utcNow);
+
+        /// <summary>
+        /// Returns whether polling should run at the specified UTC time.
+        /// </summary>
+        bool IsPollingDue(DateTime utcNow);
+
+        /// <summary>
+        /// Execute only health-check phase and update internal timing/state.
+        /// </summary>
+        Task<bool> ExecuteHealthCheckPhaseAsync(CancellationToken cancellationToken);
+
+        /// <summary>
+        /// Execute only polling phase and update internal timing/state.
+        /// </summary>
+        Task ExecutePollingPhaseAsync(CancellationToken cancellationToken);
+
+        /// <summary>
         /// Execute one polling cycle when scheduled.
         /// </summary>
         Task ExecuteCycleAsync(CancellationToken cancellationToken);

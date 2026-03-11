@@ -1,4 +1,5 @@
 using System;
+using System.Net.NetworkInformation;
 using System.Threading;
 using System.Threading.Tasks;
 using LP2DTP.Common.Models;
@@ -8,199 +9,90 @@ namespace LP2DTP.Common.Services
     /// <summary>
     /// VISA polling worker implementation
     /// </summary>
-    public class VisaPollingWorker : IPollingWorker
+    public class VisaPollingWorker : PollingWorkerBase
     {
         private readonly VisaItem _visaItem;
         private readonly IVisaCommunication _visaCommunication;
-        private bool _isRunning;
         private bool _isConnected;
-        private DateTime _nextPollingAtUtc = DateTime.MinValue;
-        private DateTime _nextHealthCheckAtUtc = DateTime.MinValue;
-        private bool _isEndpointAlive;
+        private readonly PollingLogService _logService = PollingLogService.Instance;
 
-        public bool IsRunning => _isRunning;
-        public int PollingIntervalMs { get; set; } = 1000;
-        public int HealthCheckIntervalMs { get; set; } = 5000;
+        public override event EventHandler<PollingDataReceivedEventArgs>? DataReceived;
+        public override event EventHandler<PollingErrorEventArgs>? ErrorOccurred;
 
-        public event EventHandler<PollingDataReceivedEventArgs>? DataReceived;
-        public event EventHandler<PollingErrorEventArgs>? ErrorOccurred;
-
-        public VisaPollingWorker(VisaItem visaItem) : this(visaItem, new VisaTcpCommunication())
+        private void LogMessage(string message, string level = "INFO")
         {
+            _logService.Log(level, "VISA", _visaItem.Device.MachineName, message);
         }
 
-        public VisaPollingWorker(VisaItem visaItem, IVisaCommunication visaCommunication)
+        protected override async Task<bool> CheckEndpointAliveAsync(CancellationToken cancellationToken)
         {
-            _visaItem = visaItem ?? throw new ArgumentNullException(nameof(visaItem));
-            _visaCommunication = visaCommunication ?? throw new ArgumentNullException(nameof(visaCommunication));
-        }
-
-        public Task StartAsync()
-        {
-            if (_isRunning)
-            {
-                return Task.CompletedTask;
-            }
-
-            _isRunning = true;
-            _isEndpointAlive = true;
-            _nextHealthCheckAtUtc = DateTime.UtcNow;
-            _nextPollingAtUtc = GetNextAlignedPollingTimeUtc(DateTime.UtcNow);
-            return Task.CompletedTask;
-        }
-
-        public async Task StopAsync()
-        {
-            if (!_isRunning)
-            {
-                return;
-            }
-
-            _isRunning = false;
-
-            // Close VISA connection
             try
             {
-                await _visaCommunication.CloseAsync().ConfigureAwait(false);
-                _isConnected = false;
-            }
-            catch
-            {
-                // Ignore errors during cleanup
-            }
-        }
-
-        public async Task ExecuteCycleAsync(CancellationToken cancellationToken)
-        {
-            if (!_isRunning)
-            {
-                return;
-            }
-
-            var now = DateTime.UtcNow;
-
-            if (now >= _nextHealthCheckAtUtc)
-            {
-                _isEndpointAlive = await CheckEndpointAliveAsync(cancellationToken).ConfigureAwait(false);
-                _nextHealthCheckAtUtc = DateTime.UtcNow.AddMilliseconds(Math.Max(1, HealthCheckIntervalMs));
-            }
-
-            if (!_isEndpointAlive)
-            {
-                if (_isConnected)
+                LogMessage($"Pinging {_visaItem.Device.IpAddress}");
+                
+                using (var ping = new Ping())
                 {
-                    await _visaCommunication.CloseAsync().ConfigureAwait(false);
-                    _isConnected = false;
+                    var reply = await ping.SendPingAsync(_visaItem.Device.IpAddress, 2000);
+                    
+                    if (reply.Status == IPStatus.Success)
+                    {
+                        LogMessage($"Ping OK (RTT={reply.RoundtripTime}ms)");
+                        return true;
+                    }
+                    else
+                    {
+                        LogMessage($"Ping failed: {reply.Status}", "WARNING");
+                        _isConnected = false;
+                        return false;
+                    }
                 }
-
-                return;
             }
-
-            if (now < _nextPollingAtUtc)
+            catch (Exception ex)
             {
-                return;
-            }
-
-            await ExecuteSingleCycleAsync(cancellationToken).ConfigureAwait(false);
-
-            var interval = TimeSpan.FromMilliseconds(Math.Max(1, PollingIntervalMs));
-            do
-            {
-                _nextPollingAtUtc = _nextPollingAtUtc.Add(interval);
-            }
-            while (_nextPollingAtUtc <= DateTime.UtcNow);
-        }
-
-        private DateTime GetNextAlignedPollingTimeUtc(DateTime utcNow)
-        {
-            var intervalTicks = TimeSpan.FromMilliseconds(Math.Max(1, PollingIntervalMs)).Ticks;
-            var nextTicks = ((utcNow.Ticks + intervalTicks - 1) / intervalTicks) * intervalTicks;
-            return new DateTime(nextTicks, DateTimeKind.Utc);
-        }
-
-        private async Task<bool> CheckEndpointAliveAsync(CancellationToken cancellationToken)
-        {
-            if (_isConnected && _visaCommunication.IsConnected)
-            {
-                return true;
-            }
-
-            try
-            {
-                var resourceName = $"TCPIP::{_visaItem.Device.IpAddress}::5025::SOCKET";
-                var connected = await _visaCommunication.OpenAsync(resourceName).ConfigureAwait(false);
-                if (!connected)
-                {
-                    return false;
-                }
-
-                await _visaCommunication.CloseAsync().ConfigureAwait(false);
-                _isConnected = false;
-                return true;
-            }
-            catch
-            {
+                LogMessage($"Health check error: {ex.Message}", "ERROR");
                 _isConnected = false;
                 return false;
             }
         }
 
-        private async Task ExecuteSingleCycleAsync(CancellationToken cancellationToken)
-        {
-            try
-            {
-                if (_visaItem.IsEnabled)
-                {
-                    await ExecutePollingAsync(cancellationToken).ConfigureAwait(false);
-                }
-                else if (_isConnected)
-                {
-                    // Ensure no VISA connection is kept while item is disabled
-                    await _visaCommunication.CloseAsync().ConfigureAwait(false);
-                    _isConnected = false;
-                }
-            }
-            catch (Exception ex)
-            {
-                _isEndpointAlive = false;
-                OnErrorOccurred(new PollingErrorEventArgs
-                {
-                    MachineName = _visaItem.Device.MachineName,
-                    UnitName = _visaItem.Device.UnitName,
-                    IpAddress = _visaItem.Device.IpAddress,
-                    Command = _visaItem.CommandCurr,
-                    Exception = ex,
-                    ErrorMessage = ex.Message,
-                    Timestamp = DateTime.Now
-                });
-            }
-        }
-
-        private async Task ExecutePollingAsync(CancellationToken cancellationToken)
+        protected override async Task ExecutePollingAsync(CancellationToken cancellationToken)
         {
             if (!_isConnected || !_visaCommunication.IsConnected)
             {
-                // Try to reconnect
                 var resourceName = $"TCPIP::{_visaItem.Device.IpAddress}::5025::SOCKET";
-                _isConnected = await _visaCommunication.OpenAsync(resourceName);
-
-                if (!_isConnected)
+                LogMessage($"Connecting to {resourceName}");
+                
+                try
                 {
-                    throw new InvalidOperationException("Not connected to device");
+                    _isConnected = await _visaCommunication.OpenAsync(resourceName).ConfigureAwait(false);
+
+                    if (!_isConnected)
+                    {
+                        LogMessage($"Connection failed: OpenAsync returned false", "ERROR");
+                        throw new InvalidOperationException("Not connected to device");
+                    }
+                    LogMessage($"Connected successfully");
+                }
+                catch (Exception ex)
+                {
+                    LogMessage($"Connection error: {ex.GetType().Name} - {ex.Message}", "ERROR");
+                    _isConnected = false;
+                    throw;
                 }
             }
 
             try
             {
-                // Measure current
                 if (!string.IsNullOrEmpty(_visaItem.CommandCurr))
                 {
-                    var currentResponse = await _visaCommunication.QueryAsync(_visaItem.CommandCurr);
+                    LogMessage($"Querying current: {_visaItem.CommandCurr}");
+                    var currentResponse = await _visaCommunication.QueryAsync(_visaItem.CommandCurr).ConfigureAwait(false);
+                    LogMessage($"Current response: {currentResponse}");
 
-                    // Try to parse numeric value
                     if (TryParseResponse(currentResponse, out double currentValue))
                     {
                         _visaItem.CurrentValue = currentValue;
+                        LogMessage($"Current: {currentValue}A");
                     }
 
                     OnDataReceived(new PollingDataReceivedEventArgs
@@ -214,15 +106,16 @@ namespace LP2DTP.Common.Services
                     });
                 }
 
-                // Measure voltage
                 if (!string.IsNullOrEmpty(_visaItem.CommandVolt))
                 {
-                    var voltageResponse = await _visaCommunication.QueryAsync(_visaItem.CommandVolt);
+                    LogMessage($"Querying voltage: {_visaItem.CommandVolt}");
+                    var voltageResponse = await _visaCommunication.QueryAsync(_visaItem.CommandVolt).ConfigureAwait(false);
+                    LogMessage($"Voltage response: {voltageResponse}");
 
-                    // Try to parse numeric value
                     if (TryParseResponse(voltageResponse, out double voltageValue))
                     {
                         _visaItem.VoltageValue = voltageValue;
+                        LogMessage($"Voltage: {voltageValue}V");
                     }
 
                     OnDataReceived(new PollingDataReceivedEventArgs
@@ -238,10 +131,32 @@ namespace LP2DTP.Common.Services
             }
             catch (Exception ex)
             {
-                // Connection lost, mark as disconnected
+                LogMessage($"Polling error: {ex.GetType().Name} - {ex.Message}", "ERROR");
                 _isConnected = false;
                 throw new InvalidOperationException($"Communication error: {ex.Message}", ex);
             }
+        }
+
+        protected override async Task DisconnectAsync()
+        {
+            LogMessage("Disconnecting");
+            await _visaCommunication.CloseAsync().ConfigureAwait(false);
+            _isConnected = false;
+        }
+
+        protected override void OnPollingError(Exception ex)
+        {
+            LogMessage($"Error: {ex.Message}", "ERROR");
+            OnErrorOccurred(new PollingErrorEventArgs
+            {
+                MachineName = _visaItem.Device.MachineName,
+                UnitName = _visaItem.Device.UnitName,
+                IpAddress = _visaItem.Device.IpAddress,
+                Command = _visaItem.CommandCurr,
+                Exception = ex,
+                ErrorMessage = ex.Message,
+                Timestamp = DateTime.Now
+            });
         }
 
         private bool TryParseResponse(string response, out double value)
@@ -253,7 +168,6 @@ namespace LP2DTP.Common.Services
                 return false;
             }
 
-            // Remove common units and extra characters
             var cleaned = response.Trim()
                 .Replace("A", "")
                 .Replace("V", "")
@@ -274,17 +188,22 @@ namespace LP2DTP.Common.Services
             ErrorOccurred?.Invoke(this, e);
         }
 
-        public void Dispose()
+        public VisaPollingWorker(VisaItem visaItem) : this(visaItem, new VisaTcpCommunication())
         {
-            try
-            {
-                StopAsync().ConfigureAwait(false).GetAwaiter().GetResult();
-            }
-            catch
-            {
-                // Ignore stop errors during dispose
-            }
+        }
 
+        public VisaPollingWorker(VisaItem visaItem, IVisaCommunication visaCommunication)
+        {
+            _visaItem = visaItem ?? throw new ArgumentNullException(nameof(visaItem));
+            _visaCommunication = visaCommunication ?? throw new ArgumentNullException(nameof(visaCommunication));
+        }
+
+        protected override bool IsItemEnabled => _visaItem.IsEnabled;
+
+        protected override bool IsConnectionOpen => _isConnected;
+
+        protected override void DisposeCore()
+        {
             (_visaCommunication as IDisposable)?.Dispose();
         }
     }

@@ -19,9 +19,15 @@ namespace LP2DTP.Common.Services
         private CancellationTokenSource? _loopCancellationTokenSource;
         private Task? _loopTask;
         private bool _isLoopRunning;
+        private readonly PollingLogService _logService = PollingLogService.Instance;
 
         public event EventHandler<PollingDataReceivedEventArgs>? DataReceived;
         public event EventHandler<PollingErrorEventArgs>? ErrorOccurred;
+
+        private void LogMessage(string message, string level = "INFO")
+        {
+            _logService.Log(level, "MANAGER", null, message);
+        }
 
         /// <summary>
         /// Polling interval in milliseconds (applies to new workers)
@@ -124,14 +130,17 @@ namespace LP2DTP.Common.Services
         {
             if (_isLoopRunning)
             {
+                LogMessage("[Manager] StartAllAsync: Loop already running");
                 return;
             }
 
+            LogMessage($"[Manager] StartAllAsync: Starting {_workers.Count} workers");
             _isLoopRunning = true;
             await Task.WhenAll(_workers.Values.Select(w => w.StartAsync())).ConfigureAwait(false);
 
             _loopCancellationTokenSource = new CancellationTokenSource();
             _loopTask = Task.Run(() => UnifiedPollingLoopAsync(_loopCancellationTokenSource.Token), _loopCancellationTokenSource.Token);
+            LogMessage("[Manager] StartAllAsync: Polling loop started");
         }
 
         /// <summary>
@@ -203,21 +212,73 @@ namespace LP2DTP.Common.Services
             }
         }
 
+        /// <summary>
+        /// 実行中のすべてのワーカーに対してポーリングサイクルを繰り返し実行する統合ループです。
+        /// </summary>
+        /// <param name="cancellationToken">
+        /// ループ停止を通知するキャンセルトークンです。
+        /// </param>
+        /// <remarks>
+        /// 各反復では、実行中のワーカーだけを対象に
+        /// <see cref="ExecuteWorkerCycleSafelyAsync(IPollingWorker, CancellationToken)"/> を並列実行します。
+        /// 全ワーカーのサイクル完了後、次の反復まで 50 ミリ秒待機します。
+        /// </remarks>
         private async Task UnifiedPollingLoopAsync(CancellationToken cancellationToken)
         {
+            LogMessage("[Manager] UnifiedPollingLoopAsync: Started");
+            int cycleCount = 0;
             while (!cancellationToken.IsCancellationRequested)
             {
+                var nowUtc = DateTime.UtcNow;
                 var workers = _workers.Values.Where(w => w.IsRunning).ToArray();
-                await Task.WhenAll(workers.Select(w => ExecuteWorkerCycleSafelyAsync(w, cancellationToken))).ConfigureAwait(false);
+
+                if (cycleCount++ % 20 == 0)
+                {
+                    LogMessage($"[Manager] UnifiedPollingLoopAsync: Cycle #{cycleCount}, Active workers: {workers.Length}/{_workers.Count}");
+                }
+
+                await Task.WhenAll(workers.Select(w => ExecuteWorkerCycleSafelyAsync(w, nowUtc, cancellationToken))).ConfigureAwait(false);
                 await Task.Delay(50, cancellationToken).ConfigureAwait(false);
             }
+            LogMessage("[Manager] UnifiedPollingLoopAsync: Stopped");
         }
 
-        private async Task ExecuteWorkerCycleSafelyAsync(IPollingWorker worker, CancellationToken cancellationToken)
+        /// <summary>
+        /// ワーカーの単一ポーリングサイクルを安全な例外処理で実行します。
+        /// </summary>
+        /// <param name="worker">ポーリングサイクルを実行するポーリングワーカーインスタンス。</param>
+        /// <param name="nowUtc"></param>
+        /// <param name="cancellationToken">ポーリング操作のキャンセルを通知するトークン。</param>
+        /// <remarks>
+        /// このメソッドはワーカーのポーリングサイクルを安全に実行し、例外を適切に処理します：
+        /// <list type="bullet">
+        /// <item><description><see cref="OperationCanceledException"/> はキャッチされて暗黙的に無視されます。これはシャットダウン時に予期される例外です。</description></item>
+        /// <item><description>その他の例外は <see cref="OnManagerErrorOccurred(Exception)"/> を介して報告され、エラーイベントがサブスクライバーに伝播されることを許可します。</description></item>
+        /// </list>
+        /// <para>
+        /// このアプローチにより、あるワーカーの例外が統合ポーリングループ内の他のワーカーの実行を妨げないようにします。
+        /// </para>
+        /// </remarks>
+        private async Task ExecuteWorkerCycleSafelyAsync(IPollingWorker worker, DateTime nowUtc, CancellationToken cancellationToken)
         {
             try
             {
-                await worker.ExecuteCycleAsync(cancellationToken).ConfigureAwait(false);
+                bool endpointAlive = true;
+
+                if (worker.IsHealthCheckDue(nowUtc))
+                {
+                    endpointAlive = await worker.ExecuteHealthCheckPhaseAsync(cancellationToken).ConfigureAwait(false);
+                }
+
+                if (!endpointAlive)
+                {
+                    return;
+                }
+
+                if (worker.IsPollingDue(nowUtc))
+                {
+                    await worker.ExecutePollingPhaseAsync(cancellationToken).ConfigureAwait(false);
+                }
             }
             catch (OperationCanceledException)
             {

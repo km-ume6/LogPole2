@@ -14,9 +14,9 @@ namespace LP2DTP
     {
         private StackPanel _itemsStackPanel;
         private TextBlock _statusTextBlock;
-        private string _currentSortColumn;
+        private string _currentSortColumn = string.Empty;
         private bool _isAscending = true;
-        
+
         public ModbusItemListViewModel ViewModel { get; }
 
         public ModbusItemListContent()
