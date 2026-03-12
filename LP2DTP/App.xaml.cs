@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices.WindowsRuntime;
+using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
@@ -15,6 +16,7 @@ using Windows.ApplicationModel;
 using Windows.ApplicationModel.Activation;
 using Windows.Foundation;
 using Windows.Foundation.Collections;
+using WinRT.Interop;
 
 // To learn more about WinUI, the WinUI project structure,
 // and more about our project templates, see: http://aka.ms/winui-project-info.
@@ -44,7 +46,23 @@ namespace LP2DTP
 		protected override void OnLaunched(Microsoft.UI.Xaml.LaunchActivatedEventArgs args)
 		{
 			Window = new MainWindow();
+			Window.Title = "LogPole2";
+			TrySetWindowIcon(Window);
 			Window.Activate();
+		}
+
+		private static void TrySetWindowIcon(Window window)
+		{
+			var iconPath = System.IO.Path.Combine(AppContext.BaseDirectory, "Assets", "app.ico");
+			if (!File.Exists(iconPath))
+			{
+				return;
+			}
+
+			var hwnd = WindowNative.GetWindowHandle(window);
+			var windowId = Microsoft.UI.Win32Interop.GetWindowIdFromWindow(hwnd);
+			var appWindow = AppWindow.GetFromWindowId(windowId);
+			appWindow.SetIcon(iconPath);
 		}
 	}
 }

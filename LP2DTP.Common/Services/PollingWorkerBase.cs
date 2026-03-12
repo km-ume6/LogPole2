@@ -8,20 +8,20 @@ namespace LP2DTP.Common.Services
     {
         private bool _isRunning;
         private bool _isEndpointAlive;
-        private int _pollingIntervalMs = 1000;
-        private int _healthCheckIntervalMs = 5000;
+        private int _pollingIntervalSeconds = 1;
+        private int _healthCheckIntervalSeconds = 5;
         private DateTime _nextPollingAtUtc = DateTime.MinValue;
         private DateTime _nextHealthCheckAtUtc = DateTime.MinValue;
         protected readonly PollingLogService LogService = PollingLogService.Instance;
 
         public bool IsRunning => _isRunning;
 
-        public int PollingIntervalMs
+        public int PollingIntervalSeconds
         {
-            get => _pollingIntervalMs;
+            get => _pollingIntervalSeconds;
             set
             {
-                _pollingIntervalMs = Math.Max(1, value);
+                _pollingIntervalSeconds = Math.Clamp(value, 1, 3600);
                 if (_isRunning)
                 {
                     _nextPollingAtUtc = GetNextAlignedPollingTimeUtc(DateTime.UtcNow);
@@ -29,12 +29,12 @@ namespace LP2DTP.Common.Services
             }
         }
 
-        public int HealthCheckIntervalMs
+        public int HealthCheckIntervalSeconds
         {
-            get => _healthCheckIntervalMs;
+            get => _healthCheckIntervalSeconds;
             set
             {
-                _healthCheckIntervalMs = Math.Max(1, value);
+                _healthCheckIntervalSeconds = Math.Clamp(value, 1, 3600);
                 if (_isRunning)
                 {
                     _nextHealthCheckAtUtc = DateTime.UtcNow;
@@ -95,7 +95,7 @@ namespace LP2DTP.Common.Services
             }
 
             _isEndpointAlive = await CheckEndpointAliveAsync(cancellationToken).ConfigureAwait(false);
-            _nextHealthCheckAtUtc = DateTime.UtcNow.AddMilliseconds(Math.Max(1, HealthCheckIntervalMs));
+            _nextHealthCheckAtUtc = DateTime.UtcNow.AddSeconds(Math.Max(1, HealthCheckIntervalSeconds));
 
             if (!_isEndpointAlive)
             {
@@ -175,7 +175,7 @@ namespace LP2DTP.Common.Services
 
         private void MoveNextPollingTime()
         {
-            var interval = TimeSpan.FromMilliseconds(_pollingIntervalMs);
+            var interval = TimeSpan.FromSeconds(_pollingIntervalSeconds);
             do
             {
                 _nextPollingAtUtc = _nextPollingAtUtc.Add(interval);
@@ -185,7 +185,7 @@ namespace LP2DTP.Common.Services
 
         private DateTime GetNextAlignedPollingTimeUtc(DateTime utcNow)
         {
-            var intervalTicks = TimeSpan.FromMilliseconds(_pollingIntervalMs).Ticks;
+            var intervalTicks = TimeSpan.FromSeconds(_pollingIntervalSeconds).Ticks;
             var nextTicks = ((utcNow.Ticks + intervalTicks - 1) / intervalTicks) * intervalTicks;
             return new DateTime(nextTicks, DateTimeKind.Utc);
         }

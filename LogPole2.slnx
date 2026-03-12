@@ -11,4 +11,5 @@
     <Platform Solution="*|x86" Project="x86" />
     <Deploy />
   </Project>
+  <Project Path="LP2SVR/LP2SVR.csproj" />
 </Solution>

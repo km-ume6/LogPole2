@@ -1,3 +1,6 @@
+using System;
+using System.Text.Json.Serialization;
+
 namespace LP2DTP.Common.Models
 {
     /// <summary>
@@ -6,22 +9,55 @@ namespace LP2DTP.Common.Models
     public class AppSettings
     {
         /// <summary>
-        /// Polling interval in milliseconds
+        /// Polling interval in seconds
         /// </summary>
-        public int PollingIntervalMs { get; set; } = 1000;
+        public int PollingIntervalSeconds { get; set; } = 1;
 
         /// <summary>
-        /// Health-check interval in milliseconds
+        /// Health-check interval in seconds
         /// </summary>
-        public int HealthCheckIntervalMs { get; set; } = 5000;
+        public int HealthCheckIntervalSeconds { get; set; } = 5;
+
+        [JsonPropertyName("PollingIntervalMs")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+        public int LegacyPollingIntervalMs
+        {
+            get => 0;
+            set => PollingIntervalSeconds = NormalizeFromLegacyMilliseconds(value, PollingIntervalSeconds);
+        }
+
+        [JsonPropertyName("HealthCheckIntervalMs")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+        public int LegacyHealthCheckIntervalMs
+        {
+            get => 0;
+            set => HealthCheckIntervalSeconds = NormalizeFromLegacyMilliseconds(value, HealthCheckIntervalSeconds);
+        }
 
         /// <summary>
         /// Default values
         /// </summary>
         public static AppSettings Default => new AppSettings
         {
-            PollingIntervalMs = 1000,
-            HealthCheckIntervalMs = 5000
+            PollingIntervalSeconds = 1,
+            HealthCheckIntervalSeconds = 5
         };
+
+        public void Normalize()
+        {
+            PollingIntervalSeconds = Math.Clamp(PollingIntervalSeconds, 1, 3600);
+            HealthCheckIntervalSeconds = Math.Clamp(HealthCheckIntervalSeconds, 1, 3600);
+        }
+
+        private static int NormalizeFromLegacyMilliseconds(int legacyMilliseconds, int fallback)
+        {
+            if (legacyMilliseconds <= 0)
+            {
+                return fallback;
+            }
+
+            var seconds = Math.Max(1, (int)Math.Round(legacyMilliseconds / 1000d));
+            return Math.Clamp(seconds, 1, 3600);
+        }
     }
 }

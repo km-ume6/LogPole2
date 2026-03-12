@@ -25,14 +25,14 @@ namespace LP2DTP.Common.Services
         bool IsRunning { get; }
 
         /// <summary>
-        /// Polling interval in milliseconds
+        /// Polling interval in seconds
         /// </summary>
-        int PollingIntervalMs { get; set; }
+        int PollingIntervalSeconds { get; set; }
 
         /// <summary>
-        /// Health-check interval in milliseconds.
+        /// Health-check interval in seconds.
         /// </summary>
-        int HealthCheckIntervalMs { get; set; }
+        int HealthCheckIntervalSeconds { get; set; }
 
         /// <summary>
         /// Event raised when polling data is received

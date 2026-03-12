@@ -16,8 +16,8 @@ namespace LP2DTP.Common.Services
         private readonly ConcurrentQueue<PollingDataReceivedEventArgs> _pendingSqlWrites = new();
         private long _currentCycleTimestampBinary = DateTime.Now.ToBinary();
         private bool _disposed;
-        private int _pollingIntervalMs = 1000;
-        private int _healthCheckIntervalMs = 5000;
+        private int _pollingIntervalSeconds = 1;
+        private int _healthCheckIntervalSeconds = 5;
         private CancellationTokenSource? _loopCancellationTokenSource;
         private Task? _loopTask;
         private bool _isLoopRunning;
@@ -33,33 +33,33 @@ namespace LP2DTP.Common.Services
         }
 
         /// <summary>
-        /// Polling interval in milliseconds (applies to new workers)
+        /// Polling interval in seconds (applies to new workers)
         /// </summary>
-        public int PollingIntervalMs
+        public int PollingIntervalSeconds
         {
-            get => _pollingIntervalMs;
+            get => _pollingIntervalSeconds;
             set
             {
-                _pollingIntervalMs = value;
+                _pollingIntervalSeconds = Math.Clamp(value, 1, 3600);
                 foreach (var worker in _workers.Values)
                 {
-                    worker.PollingIntervalMs = value;
+                    worker.PollingIntervalSeconds = _pollingIntervalSeconds;
                 }
             }
         }
 
         /// <summary>
-        /// Health-check interval in milliseconds (applies to new and existing workers)
+        /// Health-check interval in seconds (applies to new and existing workers)
         /// </summary>
-        public int HealthCheckIntervalMs
+        public int HealthCheckIntervalSeconds
         {
-            get => _healthCheckIntervalMs;
+            get => _healthCheckIntervalSeconds;
             set
             {
-                _healthCheckIntervalMs = value;
+                _healthCheckIntervalSeconds = Math.Clamp(value, 1, 3600);
                 foreach (var worker in _workers.Values)
                 {
-                    worker.HealthCheckIntervalMs = value;
+                    worker.HealthCheckIntervalSeconds = _healthCheckIntervalSeconds;
                 }
             }
         }
@@ -182,8 +182,8 @@ namespace LP2DTP.Common.Services
         {
             RemoveWorker(key);
 
-            worker.PollingIntervalMs = _pollingIntervalMs;
-            worker.HealthCheckIntervalMs = _healthCheckIntervalMs;
+            worker.PollingIntervalSeconds = _pollingIntervalSeconds;
+            worker.HealthCheckIntervalSeconds = _healthCheckIntervalSeconds;
             worker.DataReceived += Worker_DataReceived;
             worker.ErrorOccurred += Worker_ErrorOccurred;
 

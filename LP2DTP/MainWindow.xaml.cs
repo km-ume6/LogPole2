@@ -24,6 +24,7 @@ namespace LP2DTP
 			_navView.MenuItems.Add(new NavigationViewItem { Content = "VISA Items", Tag = "visaitems" });
 			_navView.MenuItems.Add(new NavigationViewItem { Content = "Modbus Items", Tag = "modbusitems" });
 			_navView.MenuItems.Add(new NavigationViewItem { Content = "Polling Test", Tag = "polling" });
+			_navView.MenuItems.Add(new NavigationViewItem { Content = "LP2SVR Service", Tag = "service" });
 
 			_contentFrame = new Frame();
 			_navView.Content = _contentFrame;
@@ -72,6 +73,10 @@ namespace LP2DTP
 			{
 				_contentFrame.Content = new PollingTestPage();
 			}
+			else if (tag == "service")
+			{
+				_contentFrame.Content = new SettingsPage();
+			}
 		}
 
 		public void NavigateToVisaItems()
@@ -87,6 +92,11 @@ namespace LP2DTP
 		public void NavigateToPollingTest()
 		{
 			_navView.SelectedItem = _navView.MenuItems[3];
+		}
+
+		public void NavigateToServiceManagement()
+		{
+			_navView.SelectedItem = _navView.MenuItems[4];
 		}
 	}
 }

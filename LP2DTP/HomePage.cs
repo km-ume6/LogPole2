@@ -66,6 +66,18 @@ namespace LP2DTP
             pollingTestButton.Click += (s, e) => NavigateToPage("polling");
             navPanel.Children.Add(pollingTestButton);
 
+            var serviceButton = new Button
+            {
+                Content = "LP2SVR Service Management",
+                Padding = new Thickness(24, 12, 24, 12),
+                HorizontalAlignment = HorizontalAlignment.Center,
+                Width = 250,
+                Background = new Microsoft.UI.Xaml.Media.SolidColorBrush(new Windows.UI.Color { A = 255, R = 204, G = 102, B = 0 }),
+                Foreground = new Microsoft.UI.Xaml.Media.SolidColorBrush(new Windows.UI.Color { A = 255, R = 255, G = 255, B = 255 })
+            };
+            serviceButton.Click += (s, e) => NavigateToPage("service");
+            navPanel.Children.Add(serviceButton);
+
             panel.Children.Add(navPanel);
             this.Children.Add(panel);
         }
@@ -92,6 +104,10 @@ namespace LP2DTP
                 else if (page == "polling")
                 {
                     frame.Content = new PollingTestPage();
+                }
+                else if (page == "service")
+                {
+                    frame.Content = new SettingsPage();
                 }
             }
         }

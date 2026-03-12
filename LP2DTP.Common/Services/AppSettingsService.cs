@@ -51,11 +51,13 @@ namespace LP2DTP.Common.Services
                     _currentSettings = AppSettings.Default;
                 }
 
+                _currentSettings.Normalize();
                 return _currentSettings;
             }
             catch
             {
                 _currentSettings = AppSettings.Default;
+                _currentSettings.Normalize();
                 return _currentSettings;
             }
         }
@@ -69,6 +71,8 @@ namespace LP2DTP.Common.Services
 
             try
             {
+                settings.Normalize();
+
                 if (!Directory.Exists(SettingsDirectory))
                 {
                     Directory.CreateDirectory(SettingsDirectory);
