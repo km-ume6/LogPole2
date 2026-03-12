@@ -13,6 +13,8 @@ namespace LP2DTP.Common.Services
     public class PollingWorkerManager : IDisposable
     {
         private readonly ConcurrentDictionary<string, IPollingWorker> _workers = new();
+        private readonly ConcurrentQueue<PollingDataReceivedEventArgs> _pendingSqlWrites = new();
+        private long _currentCycleTimestampBinary = DateTime.Now.ToBinary();
         private bool _disposed;
         private int _pollingIntervalMs = 1000;
         private int _healthCheckIntervalMs = 5000;
@@ -20,6 +22,7 @@ namespace LP2DTP.Common.Services
         private Task? _loopTask;
         private bool _isLoopRunning;
         private readonly PollingLogService _logService = PollingLogService.Instance;
+        private readonly PollingSqlLoggingService _sqlLoggingService = new();
 
         public event EventHandler<PollingDataReceivedEventArgs>? DataReceived;
         public event EventHandler<PollingErrorEventArgs>? ErrorOccurred;
@@ -165,13 +168,13 @@ namespace LP2DTP.Common.Services
                     }
                     catch (OperationCanceledException)
                     {
-                        // Expected when cancelling
                     }
                 }
 
                 cancellationTokenSource.Dispose();
             }
 
+            await FlushPendingSqlWritesAsync(CancellationToken.None).ConfigureAwait(false);
             await Task.WhenAll(_workers.Values.Select(w => w.StopAsync())).ConfigureAwait(false);
         }
 
@@ -229,7 +232,9 @@ namespace LP2DTP.Common.Services
             int cycleCount = 0;
             while (!cancellationToken.IsCancellationRequested)
             {
-                var nowUtc = DateTime.UtcNow;
+                var cycleTimestamp = DateTime.Now;
+                Interlocked.Exchange(ref _currentCycleTimestampBinary, cycleTimestamp.ToBinary());
+                var nowUtc = cycleTimestamp.ToUniversalTime();
                 var workers = _workers.Values.Where(w => w.IsRunning).ToArray();
 
                 if (cycleCount++ % 20 == 0)
@@ -237,7 +242,15 @@ namespace LP2DTP.Common.Services
                     LogMessage($"[Manager] UnifiedPollingLoopAsync: Cycle #{cycleCount}, Active workers: {workers.Length}/{_workers.Count}");
                 }
 
-                await Task.WhenAll(workers.Select(w => ExecuteWorkerCycleSafelyAsync(w, nowUtc, cancellationToken))).ConfigureAwait(false);
+                var visaWorkers = workers.Where(w => w is VisaPollingWorker).ToArray();
+                var modbusWorkers = workers.Where(w => w is ModbusPollingWorker).ToArray();
+                var otherWorkers = workers.Where(w => w is not VisaPollingWorker && w is not ModbusPollingWorker).ToArray();
+
+                await Task.WhenAll(visaWorkers.Select(w => ExecuteWorkerCycleSafelyAsync(w, nowUtc, cancellationToken))).ConfigureAwait(false);
+                await Task.WhenAll(modbusWorkers.Select(w => ExecuteWorkerCycleSafelyAsync(w, nowUtc, cancellationToken))).ConfigureAwait(false);
+                await Task.WhenAll(otherWorkers.Select(w => ExecuteWorkerCycleSafelyAsync(w, nowUtc, cancellationToken))).ConfigureAwait(false);
+
+                await FlushPendingSqlWritesAsync(cancellationToken).ConfigureAwait(false);
                 await Task.Delay(50, cancellationToken).ConfigureAwait(false);
             }
             LogMessage("[Manager] UnifiedPollingLoopAsync: Stopped");
@@ -322,7 +335,28 @@ namespace LP2DTP.Common.Services
 
         private void Worker_DataReceived(object? sender, PollingDataReceivedEventArgs e)
         {
+            e.Timestamp = DateTime.FromBinary(Interlocked.Read(ref _currentCycleTimestampBinary));
+            _pendingSqlWrites.Enqueue(e);
             DataReceived?.Invoke(this, e);
+        }
+
+        private async Task FlushPendingSqlWritesAsync(CancellationToken cancellationToken)
+        {
+            while (_pendingSqlWrites.TryDequeue(out var data))
+            {
+                try
+                {
+                    await _sqlLoggingService.WriteAsync(data, cancellationToken).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException)
+                {
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    OnManagerErrorOccurred(ex);
+                }
+            }
         }
 
         private void Worker_ErrorOccurred(object? sender, PollingErrorEventArgs e)
@@ -351,6 +385,7 @@ namespace LP2DTP.Common.Services
             }
 
             _workers.Clear();
+            _sqlLoggingService.Dispose();
             _disposed = true;
         }
     }
