@@ -1,11 +1,12 @@
 using System;
+using System.Threading.Tasks;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using LP2DTP.Common.Models;
 using LP2DTP.Common.Services;
 using LP2DTP.Services;
-using Windows.Storage.Pickers;
+using WinAppSdkPickers = Microsoft.Windows.Storage.Pickers;
 using WinRT.Interop;
 
 namespace LP2DTP.Pages
@@ -429,31 +430,40 @@ namespace LP2DTP.Pages
         {
             try
             {
-                var picker = new FileOpenPicker();
-                picker.FileTypeFilter.Add(".exe");
-                picker.SuggestedStartLocation = PickerLocationId.ComputerFolder;
-
-                var window = (Application.Current as App)?.Window;
-                if (window == null)
-                {
-                    throw new InvalidOperationException("Main window is not available.");
-                }
-
-                InitializeWithWindow.Initialize(picker, WindowNative.GetWindowHandle(window));
-
-                var file = await picker.PickSingleFileAsync();
-                if (file == null)
+                var selectedPath = await TryPickExecutablePathAsync();
+                if (string.IsNullOrWhiteSpace(selectedPath))
                 {
                     return;
                 }
 
-                _serviceExecutablePathBox.Text = file.Path;
+                _serviceExecutablePathBox.Text = selectedPath;
                 UpdateStatus("LP2SVR executable selected", false);
             }
             catch (Exception ex)
             {
                 UpdateStatus($"Error selecting executable: {ex.Message}", true);
             }
+        }
+
+        private async Task<string?> TryPickExecutablePathAsync()
+        {
+            var window = (Application.Current as App)?.Window;
+            if (window == null)
+            {
+                return null;
+            }
+
+            var hwnd = WindowNative.GetWindowHandle(window);
+            var windowId = Microsoft.UI.Win32Interop.GetWindowIdFromWindow(hwnd);
+
+            var picker = new WinAppSdkPickers.FileOpenPicker(windowId)
+            {
+                SuggestedStartLocation = WinAppSdkPickers.PickerLocationId.ComputerFolder
+            };
+            picker.FileTypeFilter.Add(".exe");
+
+            var file = await picker.PickSingleFileAsync();
+            return file?.Path;
         }
 
         private async void RegisterServiceButton_Click(object sender, RoutedEventArgs e)

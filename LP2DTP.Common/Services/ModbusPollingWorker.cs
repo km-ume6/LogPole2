@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Net.NetworkInformation;
 using System.Threading;
 using System.Threading.Tasks;
@@ -15,6 +16,8 @@ namespace LP2DTP.Common.Services
         private readonly IModbusCommunication _modbusCommunication;
         private bool _isConnected;
         private readonly PollingLogService _logService = PollingLogService.Instance;
+        private static readonly ConcurrentDictionary<string, SemaphoreSlim> _healthCheckLocks = new(StringComparer.OrdinalIgnoreCase);
+        private static readonly ConcurrentDictionary<string, CachedHealthCheckResult> _healthCheckCache = new(StringComparer.OrdinalIgnoreCase);
 
         public override event EventHandler<PollingDataReceivedEventArgs>? DataReceived;
         public override event EventHandler<PollingErrorEventArgs>? ErrorOccurred;
@@ -40,32 +43,56 @@ namespace LP2DTP.Common.Services
 
         protected override async Task<bool> CheckEndpointAliveAsync(CancellationToken cancellationToken)
         {
+            var endpoint = _modbusItem.Device.IpAddress;
+            var cacheDuration = TimeSpan.FromSeconds(Math.Max(1, HealthCheckIntervalSeconds));
+            var endpointLock = _healthCheckLocks.GetOrAdd(endpoint, static _ => new SemaphoreSlim(1, 1));
+
+            await endpointLock.WaitAsync(cancellationToken).ConfigureAwait(false);
             try
             {
-                LogMessage($"Pinging {_modbusItem.Device.IpAddress}");
-                
-                using (var ping = new Ping())
+                var nowUtc = DateTime.UtcNow;
+                if (_healthCheckCache.TryGetValue(endpoint, out var cached) && cached.ExpiresAtUtc > nowUtc)
                 {
-                    var reply = await ping.SendPingAsync(_modbusItem.Device.IpAddress, 2000);
-                    
-                    if (reply.Status == IPStatus.Success)
+                    if (!cached.IsAlive)
+                    {
+                        _isConnected = false;
+                    }
+
+                    return cached.IsAlive;
+                }
+
+                try
+                {
+                    LogMessage($"Pinging {endpoint}");
+
+                    using var ping = new Ping();
+                    var reply = await ping.SendPingAsync(endpoint, 2000).ConfigureAwait(false);
+                    var isAlive = reply.Status == IPStatus.Success;
+
+                    if (isAlive)
                     {
                         LogMessage($"Ping OK (RTT={reply.RoundtripTime}ms)");
-                        return true;
                     }
                     else
                     {
                         LogMessage($"Ping failed: {reply.Status}", "WARNING");
                         _isConnected = false;
-                        return false;
                     }
+
+                    _healthCheckCache[endpoint] = new CachedHealthCheckResult(isAlive, nowUtc.Add(cacheDuration));
+                    return isAlive;
+                }
+                catch (Exception ex)
+                {
+                    LogMessage($"Health check error: {ex.Message}", "ERROR");
+                    _isConnected = false;
+                    _healthCheckCache[endpoint] = new CachedHealthCheckResult(false, nowUtc.Add(cacheDuration));
+                    return false;
                 }
             }
-            catch (Exception ex)
+            finally
             {
-                LogMessage($"Health check error: {ex.Message}", "ERROR");
-                _isConnected = false;
-                return false;
+                endpointLock.Release();
             }
         }
 
@@ -338,5 +365,7 @@ namespace LP2DTP.Common.Services
         {
             (_modbusCommunication as IDisposable)?.Dispose();
         }
+
+        private readonly record struct CachedHealthCheckResult(bool IsAlive, DateTime ExpiresAtUtc);
     }
 }

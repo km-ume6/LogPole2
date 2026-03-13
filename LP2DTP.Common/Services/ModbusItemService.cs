@@ -18,15 +18,11 @@ namespace LP2DTP.Common.Services
 
         public ModbusItemService()
         {
-            _dataDirectory = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
-                "LP2DTP");
-            _filePath = Path.Combine(_dataDirectory, FileName);
+            _dataDirectory = ApplicationDataPath.DirectoryPath;
+            _filePath = ApplicationDataPath.GetFilePath(FileName);
 
-            if (!Directory.Exists(_dataDirectory))
-            {
-                Directory.CreateDirectory(_dataDirectory);
-            }
+            ApplicationDataPath.EnsureDirectoryExists();
+            ApplicationDataPath.MigrateLegacyFileIfNeeded(FileName);
         }
 
         public async Task<List<ModbusItem>> LoadAsync()

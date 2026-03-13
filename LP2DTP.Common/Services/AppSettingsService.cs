@@ -11,15 +11,11 @@ namespace LP2DTP.Common.Services
     /// </summary>
     public class AppSettingsService
     {
-        private static readonly string SettingsDirectory = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
-            "LP2DTP"
-        );
+        private const string SettingsFileName = "appsettings.json";
 
-        private static readonly string SettingsFilePath = Path.Combine(
-            SettingsDirectory,
-            "appsettings.json"
-        );
+        private static readonly string SettingsDirectory = ApplicationDataPath.DirectoryPath;
+
+        private static readonly string SettingsFilePath = ApplicationDataPath.GetFilePath(SettingsFileName);
 
         private AppSettings? _currentSettings;
 
@@ -35,10 +31,8 @@ namespace LP2DTP.Common.Services
         {
             try
             {
-                if (!Directory.Exists(SettingsDirectory))
-                {
-                    Directory.CreateDirectory(SettingsDirectory);
-                }
+                ApplicationDataPath.EnsureDirectoryExists();
+                ApplicationDataPath.MigrateLegacyFileIfNeeded(SettingsFileName);
 
                 if (File.Exists(SettingsFilePath))
                 {
@@ -72,11 +66,7 @@ namespace LP2DTP.Common.Services
             try
             {
                 settings.Normalize();
-
-                if (!Directory.Exists(SettingsDirectory))
-                {
-                    Directory.CreateDirectory(SettingsDirectory);
-                }
+                ApplicationDataPath.EnsureDirectoryExists();
 
                 var options = new JsonSerializerOptions
                 {
