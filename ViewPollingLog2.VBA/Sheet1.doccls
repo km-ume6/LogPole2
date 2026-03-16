@@ -1,0 +1,25 @@
+﻿Option Explicit
+
+Private Sub ComboBox1_Change()
+    Dim rgStart As Range: Set rgStart = Sheet1.Range("BeginChart")
+    Dim rgEnd As Range:  Set rgEnd = Sheet1.Range("EndChart")
+    
+    If IsDate(rgEnd) And Not DlItems Is Nothing Then
+        rgStart = rgEnd + DlItems.Item(ComboBox1.text)
+    End If
+End Sub
+
+Private Sub Worksheet_Change(ByVal Target As Range)
+    Dim nm As Name, HasName As Boolean
+    On Error Resume Next
+    Set nm = Target.Name   ' 名前がなければここで 1004 エラー
+    HasName = (Err.Number = 0)
+    On Error GoTo 0
+    
+    If HasName Then
+        Select Case Target.Name.Name
+            Case "MachineName": SetDateRange (Sheet1.Range("MachineName"))
+            Case Else:
+        End Select
+    End If
+End Sub

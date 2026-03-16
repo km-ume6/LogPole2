@@ -30,14 +30,23 @@ namespace LP2DTP.Common.Services
             try
             {
                 var connectionInfo = await GetOrCreateConnectionAsync(ipAddress, port, timeoutMs);
-                
+
                 if (!connectionInfo.IsConnected)
                 {
                     throw new InvalidOperationException($"Cannot connect to {ipAddress}:{port}");
                 }
 
                 var transactionId = connectionInfo.GetNextTransactionId();
-                return await operation(connectionInfo.TcpClient, connectionInfo.NetworkStream, transactionId);
+
+                try
+                {
+                    return await operation(connectionInfo.TcpClient, connectionInfo.NetworkStream, transactionId);
+                }
+                catch
+                {
+                    RemoveAndDisposeConnection(ipAddress, port);
+                    throw;
+                }
             }
             finally
             {
@@ -56,21 +65,22 @@ namespace LP2DTP.Common.Services
             try
             {
                 var key = GetConnectionKey(ipAddress, port);
-                
+
                 if (_connections.TryGetValue(key, out var connectionInfo))
                 {
                     if (connectionInfo.IsConnected)
                     {
                         return true;
                     }
-                    
-                    await CloseConnectionAsync(ipAddress, port);
+
+                    _connections.TryRemove(key, out _);
+                    connectionInfo.Dispose();
                 }
 
                 var testClient = new TcpClient();
                 testClient.SendTimeout = timeoutMs;
                 testClient.ReceiveTimeout = timeoutMs;
-                
+
                 try
                 {
                     await testClient.ConnectAsync(ipAddress, port);
@@ -98,11 +108,7 @@ namespace LP2DTP.Common.Services
             await semaphore.WaitAsync();
             try
             {
-                var key = GetConnectionKey(ipAddress, port);
-                if (_connections.TryRemove(key, out var connectionInfo))
-                {
-                    connectionInfo.Dispose();
-                }
+                RemoveAndDisposeConnection(ipAddress, port);
             }
             finally
             {
@@ -126,7 +132,7 @@ namespace LP2DTP.Common.Services
                     // Ignore errors during cleanup
                 }
             }
-            
+
             _connections.Clear();
         }
 
@@ -154,10 +160,10 @@ namespace LP2DTP.Common.Services
             {
                 await tcpClient.ConnectAsync(ipAddress, port);
                 var networkStream = tcpClient.GetStream();
-                
+
                 newConnectionInfo.Initialize(tcpClient, networkStream);
                 _connections[key] = newConnectionInfo;
-                
+
                 return newConnectionInfo;
             }
             catch
@@ -170,6 +176,15 @@ namespace LP2DTP.Common.Services
         private string GetConnectionKey(string ipAddress, int port)
         {
             return $"{ipAddress}:{port}";
+        }
+
+        private void RemoveAndDisposeConnection(string ipAddress, int port)
+        {
+            var key = GetConnectionKey(ipAddress, port);
+            if (_connections.TryRemove(key, out var connectionInfo))
+            {
+                connectionInfo.Dispose();
+            }
         }
 
         private class ConnectionInfo : IDisposable
@@ -189,7 +204,20 @@ namespace LP2DTP.Common.Services
                 {
                     lock (_lock)
                     {
-                        return !_disposed && (_tcpClient?.Connected ?? false);
+                        if (_disposed || _tcpClient == null || !_tcpClient.Connected)
+                        {
+                            return false;
+                        }
+
+                        try
+                        {
+                            var socket = _tcpClient.Client;
+                            return !(socket.Poll(0, SelectMode.SelectRead) && socket.Available == 0);
+                        }
+                        catch
+                        {
+                            return false;
+                        }
                     }
                 }
             }
