@@ -43,11 +43,11 @@ namespace LP2DTP.Common.Models
         /// <summary>
         /// Default current value (A) used when communication fails
         /// </summary>
-        public double DefaultCurrentValue { get; set; } = double.MinValue;
+        public double DefaultCurrentValue { get; set; } = -999.0;
 
         /// <summary>
         /// Default voltage value (V) used when communication fails
         /// </summary>
-        public double DefaultVoltageValue { get; set; } = double.MinValue;
+        public double DefaultVoltageValue { get; set; } = -999.0;
     }
 }

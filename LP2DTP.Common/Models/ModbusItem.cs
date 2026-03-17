@@ -53,6 +53,6 @@ namespace LP2DTP.Common.Models
         /// <summary>
         /// Default temperature value (°C) used when communication fails
         /// </summary>
-        public double DefaultTemperatureValue { get; set; } = double.MinValue;
+        public double DefaultTemperatureValue { get; set; } = -999.0;
     }
 }
