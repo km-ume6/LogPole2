@@ -49,6 +49,15 @@ namespace LP2DTP.Common.Services
         /// </summary>
         public bool IsEnabled { get; set; } = true;
 
+        /// <summary>SQL コマンドのタイムアウト秒数。</summary>
+        public int SqlCommandTimeoutSeconds { get; set; } = 30;
+
+        /// <summary>タイムアウト時のリトライ回数（0 の場合はリトライなし）。</summary>
+        public int TimeoutRetryCount { get; set; } = 2;
+
+        /// <summary>タイムアウト時のリトライ待機秒数。</summary>
+        public int TimeoutRetryDelaySeconds { get; set; } = 1;
+
         // ── 公開メソッド ─────────────────────────────────────────────
 
         /// <summary>
@@ -112,6 +121,7 @@ namespace LP2DTP.Common.Services
             // ── UPDATE ──
             // COALESCE により、今回渡された値が NULL（未計測）の場合は既存の DB 値を保持する。
             await using var updateCommand = connection.CreateCommand();
+            updateCommand.CommandTimeout = Math.Clamp(SqlCommandTimeoutSeconds, 1, 3600);
             updateCommand.CommandText =
                 $"UPDATE {TableName} " +
                 "SET [Volt] = COALESCE(@Volt, [Volt]), [Amp] = COALESCE(@Amp, [Amp]) " +
@@ -125,7 +135,7 @@ namespace LP2DTP.Common.Services
             updateCommand.Parameters.Add(new SqlParameter("@Amp", SqlDbType.Float) { Value = ToDbDouble(amp) });
             AddCommonIdentityParameters(updateCommand, data, hostName);
 
-            var affected = await updateCommand.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+            var affected = await ExecuteNonQueryWithRetryAsync(updateCommand, data, cancellationToken).ConfigureAwait(false);
             if (affected > 0)
             {
                 // 既存行を更新できたので INSERT は不要
@@ -136,13 +146,14 @@ namespace LP2DTP.Common.Services
             // 対象行が存在しないため新規挿入する。
             // Temp はこのサイクルで未取得のためフォールバック値を使用する。
             await using var insertCommand = connection.CreateCommand();
+            insertCommand.CommandTimeout = Math.Clamp(SqlCommandTimeoutSeconds, 1, 3600);
             insertCommand.CommandText = BuildInsertSqlTemplate();
             AddCommonIdentityParameters(insertCommand, data, hostName);
             insertCommand.Parameters.Add(new SqlParameter("@Volt", SqlDbType.Float) { Value = volt ?? DefaultNullValue });
             insertCommand.Parameters.Add(new SqlParameter("@Amp", SqlDbType.Float) { Value = amp ?? DefaultNullValue });
             insertCommand.Parameters.Add(new SqlParameter("@Temp", SqlDbType.Float) { Value = DefaultNullValue });
 
-            await insertCommand.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+            await ExecuteNonQueryWithRetryAsync(insertCommand, data, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -158,6 +169,7 @@ namespace LP2DTP.Common.Services
             // 同一タイムスタンプ・機器名の既存行の Temp だけを更新する。
             // UnitName は Modbus では一致条件に含めない（複数ユニットが同一行を共有する可能性があるため）。
             await using var updateCommand = connection.CreateCommand();
+            updateCommand.CommandTimeout = Math.Clamp(SqlCommandTimeoutSeconds, 1, 3600);
             updateCommand.CommandText =
                 $"UPDATE {TableName} SET [Temp] = @Temp " +
                 "WHERE [DateTime] = @DateTime " +
@@ -170,7 +182,7 @@ namespace LP2DTP.Common.Services
                 Value = ToDbString(data.MachineName)
             });
 
-            var affected = await updateCommand.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+            var affected = await ExecuteNonQueryWithRetryAsync(updateCommand, data, cancellationToken).ConfigureAwait(false);
             if (affected > 0)
             {
                 // 既存行を更新できたので INSERT は不要
@@ -181,6 +193,7 @@ namespace LP2DTP.Common.Services
             // 対象行が存在しないため新規挿入する。
             // Volt・Amp はこのサイクルで未取得のためフォールバック値を使用する。
             await using var insertCommand = connection.CreateCommand();
+            insertCommand.CommandTimeout = Math.Clamp(SqlCommandTimeoutSeconds, 1, 3600);
             insertCommand.CommandText = BuildInsertSqlTemplate();
             AddCommonIdentityParameters(insertCommand, data, hostName);
             // Modbus の場合は UnitName に MachineName をセット
@@ -189,8 +202,35 @@ namespace LP2DTP.Common.Services
             insertCommand.Parameters.Add(new SqlParameter("@Amp", SqlDbType.Float) { Value = DefaultNullValue });
             insertCommand.Parameters.Add(new SqlParameter("@Temp", SqlDbType.Float) { Value = temp });
 
-            await insertCommand.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+            await ExecuteNonQueryWithRetryAsync(insertCommand, data, cancellationToken).ConfigureAwait(false);
         }
+
+        private async Task<int> ExecuteNonQueryWithRetryAsync(SqlCommand command, PollingDataReceivedEventArgs data, CancellationToken cancellationToken)
+        {
+            var retryCount = Math.Clamp(TimeoutRetryCount, 0, 10);
+            var delaySeconds = Math.Clamp(TimeoutRetryDelaySeconds, 1, 3600);
+
+            for (var attempt = 0; ; attempt++)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                try
+                {
+                    return await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+                }
+                catch (SqlException ex) when (IsSqlTimeout(ex) && attempt < retryCount)
+                {
+                    var waitSeconds = Math.Min(delaySeconds * (attempt + 1), 3600);
+                    _logService.Log("WARN", "SQL", data.MachineName,
+                        $"SQL timeout detected. retry={attempt + 1}/{retryCount}, wait={waitSeconds}s, message={ex.Message}");
+                    await Task.Delay(TimeSpan.FromSeconds(waitSeconds), cancellationToken).ConfigureAwait(false);
+                }
+            }
+        }
+
+        private static bool IsSqlTimeout(SqlException ex)
+            => ex.Number == -2
+               || ex.InnerException is System.ComponentModel.Win32Exception { NativeErrorCode: 258 };
 
         /// <summary>INSERT 文のテンプレートを返す。</summary>
         public string BuildInsertSqlTemplate()

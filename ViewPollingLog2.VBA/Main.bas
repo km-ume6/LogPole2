@@ -121,30 +121,46 @@ Sub QueryDatabase2()
         Dim params As New Collection
         params.Add CStr(Range("MachineName"))
         
-        Dim rs As ADODB.Recordset
-        
-        Set rs = .ExecuteSelectQuery("SELECT UnitName FROM Logging2 WHERE MachineName = ? GROUP BY UnitName ORDER BY UnitName", params)
-        
         Dim columns As New Collection
         Dim sqlPart As String, s As String, s_sub As String
         
-        ClearCollection params
         columns.Add "DateTime"
         columns.Add "温度@" & Range("MachineName")
         
-        sqlPart = " MAX(Temp) AS [温度],"
+        ' [Only Temp]以外のUnitNameがあれば[Only Temp]を除くことができる！
+        Dim FlagDeleteOnlyTemp As Boolean: FlagDeleteOnlyTemp = False
+        Dim rs As ADODB.Recordset
+        Set rs = .ExecuteSelectQuery("SELECT UnitName FROM Logging2 WHERE MachineName = ? GROUP BY UnitName ORDER BY UnitName", params)
         Do Until rs.EOF
-            If IsNull(rs(0)) Then s_sub = "" Else s_sub = rs(0)
-            s = "電圧@" & s_sub
-            columns.Add s
-            params.Add CStr(s_sub)
-            sqlPart = sqlPart & " SUM(CASE WHEN UnitName = ? THEN Volt ELSE 0 END) AS [" & s & "],"
-            
-            If IsNull(rs(0)) Then s_sub = "" Else s_sub = rs(0)
-            s = "電流@" & s_sub
-            columns.Add s
-            params.Add CStr(s_sub)
-            sqlPart = sqlPart & " SUM(CASE WHEN UnitName = ? THEN Amp ELSE 0 END) AS [" & s & "],"
+            If Not IsNull(rs(0)) Then
+                If rs(0) <> "Only Temp" Then
+                    FlagDeleteOnlyTemp = True
+                    Exit Do
+                End If
+            End If
+            rs.MoveNext
+        Loop
+        
+        sqlPart = " MAX(Temp) AS [温度],"
+        Set rs = .ExecuteSelectQuery("SELECT UnitName FROM Logging2 WHERE MachineName = ? GROUP BY UnitName ORDER BY UnitName", params)
+        ClearCollection params
+        
+        Do Until rs.EOF
+            If Not IsNull(rs(0)) Then
+                If Not (FlagDeleteOnlyTemp And rs(0) = "Only Temp") Then
+                    s_sub = rs(0)
+                    
+                    s = "電圧@" & s_sub
+                    columns.Add s
+                    params.Add CStr(s_sub)
+                    sqlPart = sqlPart & " SUM(CASE WHEN UnitName = ? THEN Volt ELSE 0 END) AS [" & s & "],"
+                    
+                    s = "電流@" & s_sub
+                    columns.Add s
+                    params.Add CStr(s_sub)
+                    sqlPart = sqlPart & " SUM(CASE WHEN UnitName = ? THEN Amp ELSE 0 END) AS [" & s & "],"
+                End If
+            End If
             
             rs.MoveNext
         Loop
@@ -163,7 +179,7 @@ Sub QueryDatabase2()
         
         Dim sql As String
         sql = "SELECT [DateTime]," & RemoveTrailingComma(sqlPart) & " FROM Logging2 WHERE MachineName = ? AND [DateTime] >= ? AND [DateTime] <= ? GROUP BY [DateTime] ORDER BY [DateTime]"
-        params.Add Range("MachineName").text: params.Add CDate(Range("BeginChart").text): params.Add CDate(Range("EndChart").text)
+        params.Add Range("MachineName").text: params.Add CDate(Range("BeginChart").text): params.Add CDate(Range("EndChart").text & ":59")
 
         Set rs = .ExecuteSelectQuery(sql, params)
         
