@@ -184,7 +184,7 @@ namespace LP2DTP.Common.Services
             insertCommand.CommandText = BuildInsertSqlTemplate();
             AddCommonIdentityParameters(insertCommand, data, hostName);
             // Modbus の場合は UnitName に MachineName をセット
-            insertCommand.Parameters["@UnitName"].Value = ToDbString(data.MachineName);
+            insertCommand.Parameters["@UnitName"].Value = "Only Temp";
             insertCommand.Parameters.Add(new SqlParameter("@Volt", SqlDbType.Float) { Value = DefaultNullValue });
             insertCommand.Parameters.Add(new SqlParameter("@Amp", SqlDbType.Float) { Value = DefaultNullValue });
             insertCommand.Parameters.Add(new SqlParameter("@Temp", SqlDbType.Float) { Value = temp });
