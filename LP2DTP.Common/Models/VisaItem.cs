@@ -39,5 +39,15 @@ namespace LP2DTP.Common.Models
         /// Is enabled
         /// </summary>
         public bool IsEnabled { get; set; } = true;
+
+        /// <summary>
+        /// Default current value (A) used when communication fails
+        /// </summary>
+        public double DefaultCurrentValue { get; set; } = double.MinValue;
+
+        /// <summary>
+        /// Default voltage value (V) used when communication fails
+        /// </summary>
+        public double DefaultVoltageValue { get; set; } = double.MinValue;
     }
 }

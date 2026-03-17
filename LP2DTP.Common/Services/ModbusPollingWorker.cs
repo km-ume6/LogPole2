@@ -191,6 +191,17 @@ namespace LP2DTP.Common.Services
                 ErrorMessage = ex.Message,
                 Timestamp = DateTime.Now
             });
+
+            var defaultTemperature = _modbusItem.DefaultTemperatureValue;
+            OnDataReceived(new PollingDataReceivedEventArgs
+            {
+                MachineName = _modbusItem.Device.MachineName,
+                UnitName = _modbusItem.Device.UnitName,
+                IpAddress = _modbusItem.Device.IpAddress,
+                Command = $"FC{_modbusItem.FunctionCode} Unit{_modbusItem.UnitId} Reg{_modbusItem.TemperatureRegisterAddress}",
+                Response = $"{defaultTemperature:F2}°C",
+                Timestamp = DateTime.Now
+            });
         }
 
         private double ConvertRegistersToTemperature(ushort[] registers)

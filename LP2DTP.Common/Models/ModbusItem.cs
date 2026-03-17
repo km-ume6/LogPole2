@@ -49,5 +49,10 @@ namespace LP2DTP.Common.Models
         /// Is enabled
         /// </summary>
         public bool IsEnabled { get; set; } = true;
+
+        /// <summary>
+        /// Default temperature value (°C) used when communication fails
+        /// </summary>
+        public double DefaultTemperatureValue { get; set; } = double.MinValue;
     }
 }

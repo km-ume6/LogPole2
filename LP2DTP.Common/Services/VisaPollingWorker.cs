@@ -157,6 +157,32 @@ namespace LP2DTP.Common.Services
                 ErrorMessage = ex.Message,
                 Timestamp = DateTime.Now
             });
+
+            if (!string.IsNullOrEmpty(_visaItem.CommandCurr))
+            {
+                OnDataReceived(new PollingDataReceivedEventArgs
+                {
+                    MachineName = _visaItem.Device.MachineName,
+                    UnitName = _visaItem.Device.UnitName,
+                    IpAddress = _visaItem.Device.IpAddress,
+                    Command = _visaItem.CommandCurr,
+                    Response = _visaItem.DefaultCurrentValue.ToString("F4"),
+                    Timestamp = DateTime.Now
+                });
+            }
+
+            if (!string.IsNullOrEmpty(_visaItem.CommandVolt))
+            {
+                OnDataReceived(new PollingDataReceivedEventArgs
+                {
+                    MachineName = _visaItem.Device.MachineName,
+                    UnitName = _visaItem.Device.UnitName,
+                    IpAddress = _visaItem.Device.IpAddress,
+                    Command = _visaItem.CommandVolt,
+                    Response = _visaItem.DefaultVoltageValue.ToString("F4"),
+                    Timestamp = DateTime.Now
+                });
+            }
         }
 
         private bool TryParseResponse(string response, out double value)
