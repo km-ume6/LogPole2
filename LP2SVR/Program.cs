@@ -17,6 +17,7 @@ builder.Services.AddSingleton<AppSettingsService>();
 builder.Services.AddSingleton<VisaItemService>();
 builder.Services.AddSingleton<ModbusItemService>();
 builder.Services.AddSingleton<PollingWorkerManager>();
+builder.Services.AddSingleton<ServiceHealthMonitor>();
 builder.Services.AddHostedService<PollingHostedService>();
 
 var host = builder.Build();

@@ -18,6 +18,11 @@ namespace LP2DTP.Common.Models
         /// </summary>
         public int HealthCheckIntervalSeconds { get; set; } = 5;
 
+        /// <summary>
+        /// Whether Polling Test writes acquired data to the database.
+        /// </summary>
+        public bool PollingTestSqlLoggingEnabled { get; set; } = true;
+
         [JsonPropertyName("PollingIntervalMs")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
         public int LegacyPollingIntervalMs
@@ -40,7 +45,8 @@ namespace LP2DTP.Common.Models
         public static AppSettings Default => new AppSettings
         {
             PollingIntervalSeconds = 1,
-            HealthCheckIntervalSeconds = 5
+            HealthCheckIntervalSeconds = 5,
+            PollingTestSqlLoggingEnabled = true
         };
 
         public void Normalize()

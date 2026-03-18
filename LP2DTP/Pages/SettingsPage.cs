@@ -15,6 +15,8 @@ namespace LP2DTP.Pages
     {
         private readonly AppSettingsService _settingsService;
         private readonly WindowsServiceManager _serviceManager;
+        private readonly ServiceHealthMonitor _serviceHealthMonitor;
+        private readonly DispatcherTimer _serviceMonitorTimer;
         private AppSettings _settings;
         private NumberBox _pollingIntervalBox = null!;
         private NumberBox _healthCheckIntervalBox = null!;
@@ -22,6 +24,15 @@ namespace LP2DTP.Pages
         private TextBox _serviceNameBox = null!;
         private TextBox _serviceDescriptionBox = null!;
         private TextBlock _serviceStateText = null!;
+        private TextBlock _serviceHealthSummaryText = null!;
+        private TextBlock _monitorSnapshotStateText = null!;
+        private TextBlock _monitorStartedAtText = null!;
+        private TextBlock _monitorHeartbeatText = null!;
+        private TextBlock _monitorLastSuccessText = null!;
+        private TextBlock _monitorLastSuccessDeviceText = null!;
+        private TextBlock _monitorWorkersText = null!;
+        private TextBlock _monitorIntervalsText = null!;
+        private TextBlock _monitorLastErrorText = null!;
         private TextBlock _statusText = null!;
         private Button _registerServiceButton = null!;
         private Button _startServiceButton = null!;
@@ -33,10 +44,17 @@ namespace LP2DTP.Pages
         {
             _settingsService = new AppSettingsService();
             _serviceManager = new WindowsServiceManager();
+            _serviceHealthMonitor = new ServiceHealthMonitor();
+            _serviceMonitorTimer = new DispatcherTimer
+            {
+                Interval = TimeSpan.FromSeconds(5)
+            };
+            _serviceMonitorTimer.Tick += ServiceMonitorTimer_Tick;
             _settings = AppSettings.Default;
 
             InitializeUI();
             Loaded += SettingsPage_Loaded;
+            Unloaded += SettingsPage_Unloaded;
         }
 
         private void InitializeUI()
@@ -273,12 +291,14 @@ namespace LP2DTP.Pages
             _stopServiceButton = CreateServiceButton("Stop", StopServiceButton_Click);
             _restartServiceButton = CreateServiceButton("Restart", RestartServiceButton_Click);
             _deleteServiceButton = CreateServiceButton("Delete", DeleteServiceButton_Click);
+            var refreshMonitorButton = CreateServiceButton("Refresh", RefreshMonitorButton_Click);
 
             serviceButtonPanel.Children.Add(_registerServiceButton);
             serviceButtonPanel.Children.Add(_startServiceButton);
             serviceButtonPanel.Children.Add(_stopServiceButton);
             serviceButtonPanel.Children.Add(_restartServiceButton);
             serviceButtonPanel.Children.Add(_deleteServiceButton);
+            serviceButtonPanel.Children.Add(refreshMonitorButton);
             servicePanel.Children.Add(serviceButtonPanel);
 
             // Service Status Text
@@ -291,7 +311,59 @@ namespace LP2DTP.Pages
             };
             servicePanel.Children.Add(_serviceStateText);
 
+            var serviceMonitorPanel = CreateSettingRow(
+                "Service Monitor",
+                "Monitor LP2SVR heartbeat and the latest successful polling status. Refreshes every 5 seconds."
+            );
+
+            _serviceHealthSummaryText = CreateMonitorValueTextBlock("Monitor health: No data");
+            _monitorSnapshotStateText = CreateMonitorValueTextBlock("Snapshot state: -");
+            _monitorStartedAtText = CreateMonitorValueTextBlock("Started at: -");
+            _monitorHeartbeatText = CreateMonitorValueTextBlock("Last heartbeat: -");
+            _monitorLastSuccessText = CreateMonitorValueTextBlock("Last success: -");
+            _monitorLastSuccessDeviceText = CreateMonitorValueTextBlock("Last success device: -");
+            _monitorWorkersText = CreateMonitorValueTextBlock("Workers: -");
+            _monitorIntervalsText = CreateMonitorValueTextBlock("Intervals: -");
+            _monitorLastErrorText = CreateMonitorValueTextBlock("Last error: -");
+
+            serviceMonitorPanel.Children.Add(_serviceHealthSummaryText);
+            serviceMonitorPanel.Children.Add(_monitorSnapshotStateText);
+            serviceMonitorPanel.Children.Add(_monitorStartedAtText);
+            serviceMonitorPanel.Children.Add(_monitorHeartbeatText);
+            serviceMonitorPanel.Children.Add(_monitorLastSuccessText);
+            serviceMonitorPanel.Children.Add(_monitorLastSuccessDeviceText);
+            serviceMonitorPanel.Children.Add(_monitorWorkersText);
+            serviceMonitorPanel.Children.Add(_monitorIntervalsText);
+            serviceMonitorPanel.Children.Add(_monitorLastErrorText);
+            servicePanel.Children.Add(serviceMonitorPanel);
+
             contentPanel.Children.Add(servicePanel);
+
+            // Service Log and Control Buttons
+            var logControlPanel = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                Spacing = 8,
+                Margin = new Thickness(0, 12, 0, 0)
+            };
+
+            var viewLogButton = new Button
+            {
+                Content = "View Log",
+                Padding = new Thickness(16, 10, 16, 10)
+            };
+            viewLogButton.Click += ViewLogButton_Click;
+            logControlPanel.Children.Add(viewLogButton);
+
+            var clearLogButton = new Button
+            {
+                Content = "Clear Log",
+                Padding = new Thickness(16, 10, 16, 10)
+            };
+            clearLogButton.Click += ClearLogButton_Click;
+            logControlPanel.Children.Add(clearLogButton);
+
+            contentPanel.Children.Add(logControlPanel);
 
             contentScrollViewer.Content = contentPanel;
             Grid.SetRow(contentScrollViewer, 1);
@@ -338,6 +410,17 @@ namespace LP2DTP.Pages
             return panel;
         }
 
+        private TextBlock CreateMonitorDetailTextBlock(string label, string defaultValue)
+        {
+            return new TextBlock
+            {
+                Text = $"{label}: {defaultValue}",
+                FontSize = 12,
+                Foreground = new SolidColorBrush(new Windows.UI.Color { A = 255, R = 0, G = 128, B = 128 }),
+                TextWrapping = TextWrapping.Wrap
+            };
+        }
+
         private static Button CreateServiceButton(string label, RoutedEventHandler clickHandler)
         {
             var button = new Button
@@ -347,6 +430,17 @@ namespace LP2DTP.Pages
             };
             button.Click += clickHandler;
             return button;
+        }
+
+        private static TextBlock CreateMonitorValueTextBlock(string text)
+        {
+            return new TextBlock
+            {
+                Text = text,
+                FontSize = 12,
+                TextWrapping = TextWrapping.Wrap,
+                Margin = new Thickness(0, 2, 0, 0)
+            };
         }
 
         private async void ServiceNameBox_LostFocus(object sender, RoutedEventArgs e)
@@ -377,6 +471,7 @@ namespace LP2DTP.Pages
                 _deleteServiceButton.IsEnabled = isAdmin;
 
                 await RefreshServiceStatusAsync();
+                _serviceMonitorTimer.Start();
 
                 if (!isAdmin)
                 {
@@ -390,6 +485,35 @@ namespace LP2DTP.Pages
             catch (Exception ex)
             {
                 UpdateStatus($"Error loading settings: {ex.Message}", true);
+            }
+        }
+
+        private void SettingsPage_Unloaded(object sender, RoutedEventArgs e)
+        {
+            _serviceMonitorTimer.Stop();
+        }
+
+        private async void ServiceMonitorTimer_Tick(object sender, object e)
+        {
+            try
+            {
+                await RefreshServiceStatusAsync();
+            }
+            catch
+            {
+            }
+        }
+
+        private async void RefreshMonitorButton_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                await RefreshServiceStatusAsync();
+                UpdateStatus("Service monitor refreshed", false);
+            }
+            catch (Exception ex)
+            {
+                UpdateStatus($"Error refreshing service monitor: {ex.Message}", true);
             }
         }
 
@@ -556,6 +680,125 @@ namespace LP2DTP.Pages
             {
                 _serviceDescriptionBox.Text = description;
             }
+
+            await RefreshServiceMonitorAsync(serviceName, statusText);
+        }
+
+        private async Task RefreshServiceMonitorAsync(string serviceName, string windowsServiceStatus)
+        {
+            var snapshot = await _serviceHealthMonitor.LoadAsync();
+            var hasSnapshot = !string.IsNullOrWhiteSpace(snapshot.ServiceName);
+            var isServiceMatch = hasSnapshot && string.Equals(snapshot.ServiceName, serviceName, StringComparison.OrdinalIgnoreCase);
+
+            if (!hasSnapshot)
+            {
+                ApplySnapshotDisplay("No monitor data", new SolidColorBrush(new Windows.UI.Color { A = 255, R = 120, G = 120, B = 120 }));
+                _monitorSnapshotStateText.Text = "Snapshot state: -";
+                _monitorStartedAtText.Text = "Started at: -";
+                _monitorHeartbeatText.Text = "Last heartbeat: -";
+                _monitorLastSuccessText.Text = "Last success: -";
+                _monitorLastSuccessDeviceText.Text = "Last success device: -";
+                _monitorWorkersText.Text = "Workers: -";
+                _monitorIntervalsText.Text = "Intervals: -";
+                _monitorLastErrorText.Text = "Last error: -";
+                return;
+            }
+
+            if (!isServiceMatch)
+            {
+                ApplySnapshotDisplay($"Monitor data exists for service '{snapshot.ServiceName}'", new SolidColorBrush(new Windows.UI.Color { A = 255, R = 180, G = 120, B = 0 }));
+                _monitorSnapshotStateText.Text = $"Snapshot state: {snapshot.State}";
+                _monitorStartedAtText.Text = $"Started at: {FormatDateTime(snapshot.StartedAtUtc)}";
+                _monitorHeartbeatText.Text = $"Last heartbeat: {FormatDateTime(snapshot.LastHeartbeatUtc)}";
+                _monitorLastSuccessText.Text = $"Last success: {FormatDateTime(snapshot.LastSuccessfulPollUtc)}";
+                _monitorLastSuccessDeviceText.Text = $"Last success device: {FormatDevice(snapshot.LastSuccessfulMachineName, snapshot.LastSuccessfulUnitName, snapshot.LastSuccessfulIpAddress)}";
+                _monitorWorkersText.Text = $"Workers: {snapshot.ActiveWorkerCount}/{snapshot.TotalWorkerCount} (VISA {snapshot.VisaItemCount}, Modbus {snapshot.ModbusItemCount})";
+                _monitorIntervalsText.Text = $"Intervals: Polling {snapshot.PollingIntervalSeconds}s / HealthCheck {snapshot.HealthCheckIntervalSeconds}s / Heartbeat {snapshot.HeartbeatIntervalSeconds}s";
+                _monitorLastErrorText.Text = $"Last error: {FormatLastError(snapshot)}";
+                return;
+            }
+
+            var (summary, brush) = EvaluateMonitorHealth(snapshot, windowsServiceStatus);
+            ApplySnapshotDisplay(summary, brush);
+            _monitorSnapshotStateText.Text = $"Snapshot state: {snapshot.State}";
+            _monitorStartedAtText.Text = $"Started at: {FormatDateTime(snapshot.StartedAtUtc)}";
+            _monitorHeartbeatText.Text = $"Last heartbeat: {FormatDateTime(snapshot.LastHeartbeatUtc)}";
+            _monitorLastSuccessText.Text = $"Last success: {FormatDateTime(snapshot.LastSuccessfulPollUtc)}";
+            _monitorLastSuccessDeviceText.Text = $"Last success device: {FormatDevice(snapshot.LastSuccessfulMachineName, snapshot.LastSuccessfulUnitName, snapshot.LastSuccessfulIpAddress)}";
+            _monitorWorkersText.Text = $"Workers: {snapshot.ActiveWorkerCount}/{snapshot.TotalWorkerCount} (VISA {snapshot.VisaItemCount}, Modbus {snapshot.ModbusItemCount})";
+            _monitorIntervalsText.Text = $"Intervals: Polling {snapshot.PollingIntervalSeconds}s / HealthCheck {snapshot.HealthCheckIntervalSeconds}s / Heartbeat {snapshot.HeartbeatIntervalSeconds}s";
+            _monitorLastErrorText.Text = $"Last error: {FormatLastError(snapshot)}";
+        }
+
+        private void ApplySnapshotDisplay(string summary, Brush brush)
+        {
+            _serviceHealthSummaryText.Text = $"Monitor health: {summary}";
+            _serviceHealthSummaryText.Foreground = brush;
+            _serviceStateText.Foreground = brush;
+        }
+
+        private static (string Summary, Brush Brush) EvaluateMonitorHealth(ServiceHealthSnapshot snapshot, string windowsServiceStatus)
+        {
+            if (!string.Equals(windowsServiceStatus, "Running", StringComparison.OrdinalIgnoreCase))
+            {
+                return ($"Windows service is {windowsServiceStatus}", new SolidColorBrush(new Windows.UI.Color { A = 255, R = 180, G = 80, B = 0 }));
+            }
+
+            var nowUtc = DateTime.UtcNow;
+            var heartbeatIntervalSeconds = snapshot.HeartbeatIntervalSeconds > 0
+                ? snapshot.HeartbeatIntervalSeconds
+                : ServiceHealthMonitor.DefaultHeartbeatIntervalSeconds;
+            var heartbeatTimeout = TimeSpan.FromSeconds(Math.Max(heartbeatIntervalSeconds * 2, 30));
+            if (!snapshot.LastHeartbeatUtc.HasValue)
+            {
+                return ("No heartbeat received yet", new SolidColorBrush(new Windows.UI.Color { A = 255, R = 255, G = 140, B = 0 }));
+            }
+
+            var heartbeatAge = nowUtc - snapshot.LastHeartbeatUtc.Value;
+            if (heartbeatAge > heartbeatTimeout)
+            {
+                return ($"Heartbeat stale ({Math.Floor(heartbeatAge.TotalSeconds)}s ago)", new SolidColorBrush(new Windows.UI.Color { A = 255, R = 255, G = 0, B = 0 }));
+            }
+
+            if (!snapshot.LastSuccessfulPollUtc.HasValue)
+            {
+                return ("No successful polling yet", new SolidColorBrush(new Windows.UI.Color { A = 255, R = 255, G = 140, B = 0 }));
+            }
+
+            var pollingIntervalSeconds = snapshot.PollingIntervalSeconds > 0 ? snapshot.PollingIntervalSeconds : 1;
+            var successTimeout = TimeSpan.FromSeconds(Math.Max(pollingIntervalSeconds * 5, 60));
+            var successAge = nowUtc - snapshot.LastSuccessfulPollUtc.Value;
+            if (successAge > successTimeout)
+            {
+                return ($"No recent successful polling ({Math.Floor(successAge.TotalSeconds)}s ago)", new SolidColorBrush(new Windows.UI.Color { A = 255, R = 255, G = 0, B = 0 }));
+            }
+
+            return ($"Healthy (last success {Math.Floor(successAge.TotalSeconds)}s ago)", new SolidColorBrush(new Windows.UI.Color { A = 255, R = 0, G = 128, B = 0 }));
+        }
+
+        private static string FormatDateTime(DateTime? dateTimeUtc)
+        {
+            return dateTimeUtc.HasValue
+                ? dateTimeUtc.Value.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")
+                : "-";
+        }
+
+        private static string FormatDevice(string? machineName, string? unitName, string? ipAddress)
+        {
+            var machine = string.IsNullOrWhiteSpace(machineName) ? "-" : machineName.Trim();
+            var unit = string.IsNullOrWhiteSpace(unitName) ? "-" : unitName.Trim();
+            var ip = string.IsNullOrWhiteSpace(ipAddress) ? "-" : ipAddress.Trim();
+            return $"{machine} / {unit} / {ip}";
+        }
+
+        private static string FormatLastError(ServiceHealthSnapshot snapshot)
+        {
+            if (!snapshot.LastErrorUtc.HasValue && string.IsNullOrWhiteSpace(snapshot.LastErrorMessage))
+            {
+                return "-";
+            }
+
+            return $"{FormatDateTime(snapshot.LastErrorUtc)} | Count={snapshot.ConsecutiveErrorCount} | {snapshot.LastErrorMessage ?? "-"}";
         }
 
         private string GetSelectedServiceName()
@@ -578,6 +821,18 @@ namespace LP2DTP.Pages
             _statusText.Foreground = new SolidColorBrush(isError
                 ? new Windows.UI.Color { A = 255, R = 255, G = 0, B = 0 }
                 : new Windows.UI.Color { A = 255, R = 0, G = 128, B = 0 });
+        }
+
+        private async void ViewLogButton_Click(object sender, RoutedEventArgs e)
+        {
+            // TODO: Implement log viewing functionality
+            UpdateStatus("Log viewing not implemented yet.", true);
+        }
+
+        private async void ClearLogButton_Click(object sender, RoutedEventArgs e)
+        {
+            // TODO: Implement log clearing functionality
+            UpdateStatus("Log clearing not implemented yet.", true);
         }
     }
 }

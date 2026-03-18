@@ -10,8 +10,8 @@
 
   <Identity
     Name="49cd4659-ed10-4138-b7b0-c87c1490153e"
-    Publisher="CN=ume6-202603131323"
-    Version="1.0.5.0" />
+    Publisher="CN=ume6-202603181016"
+    Version="1.0.8.0" />
 
   <mp:PhoneIdentity PhoneProductId="49cd4659-ed10-4138-b7b0-c87c1490153e" PhonePublisherId="00000000-0000-0000-0000-000000000000"/>
 

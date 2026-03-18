@@ -68,6 +68,7 @@ namespace LP2DTP.Pages
         private Button _loadButton = null!;
         private Button _startButton = null!;
         private Button _stopButton = null!;
+        private CheckBox _sqlLoggingToggle = null!;
         private TextBlock _statusText = null!;
         private ScrollViewer _scrollViewer = null!;
         private Grid _communicationTableGrid = null!;
@@ -406,13 +407,17 @@ namespace LP2DTP.Pages
                 var settings = await _settingsService.LoadSettingsAsync();
                 _pollingManager.PollingIntervalSeconds = settings.PollingIntervalSeconds;
                 _pollingManager.HealthCheckIntervalSeconds = settings.HealthCheckIntervalSeconds;
-                UpdateStatus($"Page loaded. Polling: {settings.PollingIntervalSeconds}s / HealthCheck: {settings.HealthCheckIntervalSeconds}s. Click 'Load Data' to begin.", false);
+                _pollingManager.IsSqlLoggingEnabled = settings.PollingTestSqlLoggingEnabled;
+                _sqlLoggingToggle.IsChecked = settings.PollingTestSqlLoggingEnabled;
+                UpdateStatus($"Page loaded. Polling: {settings.PollingIntervalSeconds}s / HealthCheck: {settings.HealthCheckIntervalSeconds}s / DB Write: {(settings.PollingTestSqlLoggingEnabled ? "ON" : "OFF")}. Click 'Load Data' to begin.", false);
             }
             catch (Exception ex)
             {
                 UpdateStatus($"Error loading settings: {ex.Message}. Using defaults.", true);
                 _pollingManager.PollingIntervalSeconds = 1;
                 _pollingManager.HealthCheckIntervalSeconds = 5;
+                _pollingManager.IsSqlLoggingEnabled = true;
+                _sqlLoggingToggle.IsChecked = true;
             }
         }
 
@@ -802,7 +807,36 @@ namespace LP2DTP.Pages
             clearButton.Click += ClearButton_Click;
             toolbar.Children.Add(clearButton);
 
+            _sqlLoggingToggle = new CheckBox
+            {
+                Content = "Write to DB",
+                VerticalAlignment = VerticalAlignment.Center,
+                IsChecked = true,
+                Margin = new Thickness(8, 0, 0, 0)
+            };
+            _sqlLoggingToggle.Checked += SqlLoggingToggle_Changed;
+            _sqlLoggingToggle.Unchecked += SqlLoggingToggle_Changed;
+            toolbar.Children.Add(_sqlLoggingToggle);
+
             return toolbar;
+        }
+
+        private async void SqlLoggingToggle_Changed(object sender, RoutedEventArgs e)
+        {
+            var isEnabled = _sqlLoggingToggle.IsChecked == true;
+            _pollingManager.IsSqlLoggingEnabled = isEnabled;
+
+            try
+            {
+                var settings = _settingsService.CurrentSettings ?? await _settingsService.LoadSettingsAsync();
+                settings.PollingTestSqlLoggingEnabled = isEnabled;
+                await _settingsService.SaveSettingsAsync(settings);
+                UpdateStatus($"Polling Test DB write is now {(isEnabled ? "ON" : "OFF")}", false);
+            }
+            catch (Exception ex)
+            {
+                UpdateStatus($"Error saving DB write setting: {ex.Message}", true);
+            }
         }
 
         private Grid CreateLogGrid()

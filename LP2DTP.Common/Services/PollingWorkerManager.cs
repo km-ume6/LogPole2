@@ -13,6 +13,7 @@ namespace LP2DTP.Common.Services
     public class PollingWorkerManager : IDisposable
     {
         private readonly ConcurrentDictionary<string, IPollingWorker> _workers = new();
+        private readonly ConcurrentDictionary<IPollingWorker, bool> _initialCycleCompletionStates = new();
         private readonly ConcurrentQueue<PollingDataReceivedEventArgs> _pendingSqlWrites = new();
         private long _currentCycleTimestampBinary = DateTime.Now.ToBinary();
         private bool _disposed;
@@ -21,6 +22,7 @@ namespace LP2DTP.Common.Services
         private CancellationTokenSource? _loopCancellationTokenSource;
         private Task? _loopTask;
         private bool _isLoopRunning;
+        private long _initialCycleCompletedAtUtcBinary;
         private readonly PollingLogService _logService = PollingLogService.Instance;
         private readonly PollingSqlLoggingService _sqlLoggingService = new();
 
@@ -62,6 +64,15 @@ namespace LP2DTP.Common.Services
                     worker.HealthCheckIntervalSeconds = _healthCheckIntervalSeconds;
                 }
             }
+        }
+
+        /// <summary>
+        /// Whether received polling data should be written to SQL.
+        /// </summary>
+        public bool IsSqlLoggingEnabled
+        {
+            get => _sqlLoggingService.IsEnabled;
+            set => _sqlLoggingService.IsEnabled = value;
         }
 
         /// <summary>
@@ -138,6 +149,12 @@ namespace LP2DTP.Common.Services
             }
 
             LogMessage($"[Manager] StartAllAsync: Starting {_workers.Count} workers");
+            Interlocked.Exchange(ref _initialCycleCompletedAtUtcBinary, 0);
+            foreach (var worker in _workers.Values)
+            {
+                _initialCycleCompletionStates[worker] = false;
+            }
+
             _isLoopRunning = true;
             await Task.WhenAll(_workers.Values.Select(w => w.StartAsync())).ConfigureAwait(false);
 
@@ -152,6 +169,7 @@ namespace LP2DTP.Common.Services
         public async Task StopAllAsync()
         {
             _isLoopRunning = false;
+            Interlocked.Exchange(ref _initialCycleCompletedAtUtcBinary, 0);
 
             var cancellationTokenSource = Interlocked.Exchange(ref _loopCancellationTokenSource, null);
             var loopTask = Interlocked.Exchange(ref _loopTask, null);
@@ -188,6 +206,11 @@ namespace LP2DTP.Common.Services
             worker.ErrorOccurred += Worker_ErrorOccurred;
 
             _workers[key] = worker;
+            _initialCycleCompletionStates[worker] = false;
+            if (_isLoopRunning)
+            {
+                Interlocked.Exchange(ref _initialCycleCompletedAtUtcBinary, 0);
+            }
 
             if (_isLoopRunning)
             {
@@ -199,6 +222,7 @@ namespace LP2DTP.Common.Services
         {
             if (_workers.TryRemove(key, out var worker))
             {
+                _initialCycleCompletionStates.TryRemove(worker, out _);
                 worker.DataReceived -= Worker_DataReceived;
                 worker.ErrorOccurred -= Worker_ErrorOccurred;
 
@@ -277,6 +301,7 @@ namespace LP2DTP.Common.Services
             try
             {
                 bool endpointAlive = true;
+                var wasPollingDue = worker.IsPollingDue(nowUtc);
 
                 if (worker.IsHealthCheckDue(nowUtc))
                 {
@@ -285,12 +310,17 @@ namespace LP2DTP.Common.Services
 
                 if (!endpointAlive)
                 {
+                    if (wasPollingDue)
+                    {
+                        MarkInitialCycleCompleted(worker, nowUtc);
+                    }
                     return;
                 }
 
-                if (worker.IsPollingDue(nowUtc))
+                if (wasPollingDue)
                 {
                     await worker.ExecutePollingPhaseAsync(cancellationToken).ConfigureAwait(false);
+                    MarkInitialCycleCompleted(worker, nowUtc);
                 }
             }
             catch (OperationCanceledException)
@@ -312,6 +342,20 @@ namespace LP2DTP.Common.Services
                 Timestamp = DateTime.Now
             });
         }
+
+        /// <summary>
+        /// Gets when all active workers completed their first scheduled polling cycle.
+        /// </summary>
+        public DateTime? InitialCycleCompletedAtUtc
+        {
+            get
+            {
+                var binary = Interlocked.Read(ref _initialCycleCompletedAtUtcBinary);
+                return binary == 0 ? null : DateTime.FromBinary(binary);
+            }
+        }
+
+        public bool IsInitialCycleCompleted => InitialCycleCompletedAtUtc.HasValue;
 
         /// <summary>
         /// Get the count of active workers
@@ -336,7 +380,10 @@ namespace LP2DTP.Common.Services
         private void Worker_DataReceived(object? sender, PollingDataReceivedEventArgs e)
         {
             e.Timestamp = DateTime.FromBinary(Interlocked.Read(ref _currentCycleTimestampBinary));
-            _pendingSqlWrites.Enqueue(e);
+            if (IsSqlLoggingEnabled)
+            {
+                _pendingSqlWrites.Enqueue(e);
+            }
             DataReceived?.Invoke(this, e);
         }
 
@@ -362,6 +409,27 @@ namespace LP2DTP.Common.Services
         private void Worker_ErrorOccurred(object? sender, PollingErrorEventArgs e)
         {
             ErrorOccurred?.Invoke(this, e);
+        }
+
+        private void MarkInitialCycleCompleted(IPollingWorker worker, DateTime completedAtUtc)
+        {
+            if (!_isLoopRunning)
+            {
+                return;
+            }
+
+            _initialCycleCompletionStates[worker] = true;
+            if (_initialCycleCompletionStates.IsEmpty || _initialCycleCompletionStates.Any(entry => !entry.Value))
+            {
+                return;
+            }
+
+            if (Interlocked.Read(ref _initialCycleCompletedAtUtcBinary) != 0)
+            {
+                return;
+            }
+
+            Interlocked.CompareExchange(ref _initialCycleCompletedAtUtcBinary, completedAtUtc.ToBinary(), 0);
         }
 
         public void Dispose()
