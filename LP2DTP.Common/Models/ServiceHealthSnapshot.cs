@@ -8,6 +8,7 @@ namespace LP2DTP.Common.Models
         public string State { get; set; } = "Unknown";
         public DateTime? StartedAtUtc { get; set; }
         public DateTime? LastHeartbeatUtc { get; set; }
+        public DateTime? InitialCycleCompletedAtUtc { get; set; }
         public DateTime? LastSuccessfulPollUtc { get; set; }
         public string? LastSuccessfulMachineName { get; set; }
         public string? LastSuccessfulUnitName { get; set; }
@@ -18,6 +19,8 @@ namespace LP2DTP.Common.Models
         public string? LastErrorUnitName { get; set; }
         public string? LastErrorIpAddress { get; set; }
         public int ConsecutiveErrorCount { get; set; }
+        public int ConsecutiveSqlWriteErrorCount { get; set; }
+        public DateTime? LastSqlWriteErrorUtc { get; set; }
         public int ActiveWorkerCount { get; set; }
         public int TotalWorkerCount { get; set; }
         public int VisaItemCount { get; set; }
@@ -39,6 +42,7 @@ namespace LP2DTP.Common.Models
                 State = State,
                 StartedAtUtc = StartedAtUtc,
                 LastHeartbeatUtc = LastHeartbeatUtc,
+                InitialCycleCompletedAtUtc = InitialCycleCompletedAtUtc,
                 LastSuccessfulPollUtc = LastSuccessfulPollUtc,
                 LastSuccessfulMachineName = LastSuccessfulMachineName,
                 LastSuccessfulUnitName = LastSuccessfulUnitName,
@@ -49,6 +53,8 @@ namespace LP2DTP.Common.Models
                 LastErrorUnitName = LastErrorUnitName,
                 LastErrorIpAddress = LastErrorIpAddress,
                 ConsecutiveErrorCount = ConsecutiveErrorCount,
+                ConsecutiveSqlWriteErrorCount = ConsecutiveSqlWriteErrorCount,
+                LastSqlWriteErrorUtc = LastSqlWriteErrorUtc,
                 ActiveWorkerCount = ActiveWorkerCount,
                 TotalWorkerCount = TotalWorkerCount,
                 VisaItemCount = VisaItemCount,

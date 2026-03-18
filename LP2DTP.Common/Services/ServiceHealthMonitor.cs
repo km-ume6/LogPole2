@@ -75,6 +75,7 @@ namespace LP2DTP.Common.Services
                     LastErrorUnitName = existingSnapshot.LastErrorUnitName,
                     LastErrorIpAddress = existingSnapshot.LastErrorIpAddress,
                     ConsecutiveErrorCount = existingSnapshot.ConsecutiveErrorCount,
+                    ConsecutiveSqlWriteErrorCount = 0,
                     PollingIntervalSeconds = existingSnapshot.PollingIntervalSeconds,
                     HealthCheckIntervalSeconds = existingSnapshot.HealthCheckIntervalSeconds,
                     HeartbeatIntervalSeconds = DefaultHeartbeatIntervalSeconds,
@@ -114,7 +115,14 @@ namespace LP2DTP.Common.Services
             await PersistAsync(cancellationToken).ConfigureAwait(false);
         }
 
-        public async Task MarkRunningAsync(string serviceName, int activeWorkerCount, int totalWorkerCount, CancellationToken cancellationToken = default)
+        public async Task MarkRunningAsync(
+            string serviceName,
+            int activeWorkerCount,
+            int totalWorkerCount,
+            DateTime? initialCycleCompletedAtUtc,
+            int consecutiveSqlWriteErrorCount,
+            DateTime? lastSqlWriteErrorUtc,
+            CancellationToken cancellationToken = default)
         {
             var nowUtc = DateTime.UtcNow;
             lock (_snapshotLock)
@@ -122,6 +130,9 @@ namespace LP2DTP.Common.Services
                 _snapshot.ServiceName = serviceName;
                 _snapshot.State = "Running";
                 _snapshot.LastHeartbeatUtc = nowUtc;
+                _snapshot.InitialCycleCompletedAtUtc = initialCycleCompletedAtUtc;
+                _snapshot.ConsecutiveSqlWriteErrorCount = Math.Max(0, consecutiveSqlWriteErrorCount);
+                _snapshot.LastSqlWriteErrorUtc = lastSqlWriteErrorUtc;
                 _snapshot.ActiveWorkerCount = Math.Max(0, activeWorkerCount);
                 _snapshot.TotalWorkerCount = Math.Max(0, totalWorkerCount);
                 _snapshot.UpdatedAtUtc = nowUtc;
@@ -130,7 +141,14 @@ namespace LP2DTP.Common.Services
             await PersistAsync(cancellationToken).ConfigureAwait(false);
         }
 
-        public async Task UpdateHeartbeatAsync(string serviceName, int activeWorkerCount, int totalWorkerCount, CancellationToken cancellationToken = default)
+        public async Task UpdateHeartbeatAsync(
+            string serviceName,
+            int activeWorkerCount,
+            int totalWorkerCount,
+            DateTime? initialCycleCompletedAtUtc,
+            int consecutiveSqlWriteErrorCount,
+            DateTime? lastSqlWriteErrorUtc,
+            CancellationToken cancellationToken = default)
         {
             var nowUtc = DateTime.UtcNow;
             lock (_snapshotLock)
@@ -138,6 +156,9 @@ namespace LP2DTP.Common.Services
                 _snapshot.ServiceName = serviceName;
                 _snapshot.State = "Running";
                 _snapshot.LastHeartbeatUtc = nowUtc;
+                _snapshot.InitialCycleCompletedAtUtc = initialCycleCompletedAtUtc;
+                _snapshot.ConsecutiveSqlWriteErrorCount = Math.Max(0, consecutiveSqlWriteErrorCount);
+                _snapshot.LastSqlWriteErrorUtc = lastSqlWriteErrorUtc;
                 _snapshot.ActiveWorkerCount = Math.Max(0, activeWorkerCount);
                 _snapshot.TotalWorkerCount = Math.Max(0, totalWorkerCount);
                 _snapshot.UpdatedAtUtc = nowUtc;

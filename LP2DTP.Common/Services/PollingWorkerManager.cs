@@ -23,6 +23,8 @@ namespace LP2DTP.Common.Services
         private Task? _loopTask;
         private bool _isLoopRunning;
         private long _initialCycleCompletedAtUtcBinary;
+        private int _consecutiveSqlWriteErrorCount;
+        private long _lastSqlWriteErrorUtcBinary;
         private readonly PollingLogService _logService = PollingLogService.Instance;
         private readonly PollingSqlLoggingService _sqlLoggingService = new();
 
@@ -150,6 +152,8 @@ namespace LP2DTP.Common.Services
 
             LogMessage($"[Manager] StartAllAsync: Starting {_workers.Count} workers");
             Interlocked.Exchange(ref _initialCycleCompletedAtUtcBinary, 0);
+            Interlocked.Exchange(ref _consecutiveSqlWriteErrorCount, 0);
+            Interlocked.Exchange(ref _lastSqlWriteErrorUtcBinary, 0);
             foreach (var worker in _workers.Values)
             {
                 _initialCycleCompletionStates[worker] = false;
@@ -335,9 +339,15 @@ namespace LP2DTP.Common.Services
 
         private void OnManagerErrorOccurred(Exception ex)
         {
+            OnManagerErrorOccurred(ex, null, null);
+        }
+
+        private void OnManagerErrorOccurred(Exception ex, string? command, string? errorMessage)
+        {
             ErrorOccurred?.Invoke(this, new PollingErrorEventArgs
             {
-                ErrorMessage = ex.Message,
+                Command = command ?? string.Empty,
+                ErrorMessage = string.IsNullOrWhiteSpace(errorMessage) ? ex.Message : errorMessage,
                 Exception = ex,
                 Timestamp = DateTime.Now
             });
@@ -356,6 +366,17 @@ namespace LP2DTP.Common.Services
         }
 
         public bool IsInitialCycleCompleted => InitialCycleCompletedAtUtc.HasValue;
+
+        public int ConsecutiveSqlWriteErrorCount => Interlocked.CompareExchange(ref _consecutiveSqlWriteErrorCount, 0, 0);
+
+        public DateTime? LastSqlWriteErrorUtc
+        {
+            get
+            {
+                var binary = Interlocked.Read(ref _lastSqlWriteErrorUtcBinary);
+                return binary == 0 ? null : DateTime.FromBinary(binary);
+            }
+        }
 
         /// <summary>
         /// Get the count of active workers
@@ -394,6 +415,8 @@ namespace LP2DTP.Common.Services
                 try
                 {
                     await _sqlLoggingService.WriteAsync(data, cancellationToken).ConfigureAwait(false);
+                    Interlocked.Exchange(ref _consecutiveSqlWriteErrorCount, 0);
+                    Interlocked.Exchange(ref _lastSqlWriteErrorUtcBinary, 0);
                 }
                 catch (OperationCanceledException)
                 {
@@ -401,7 +424,9 @@ namespace LP2DTP.Common.Services
                 }
                 catch (Exception ex)
                 {
-                    OnManagerErrorOccurred(ex);
+                    Interlocked.Increment(ref _consecutiveSqlWriteErrorCount);
+                    Interlocked.Exchange(ref _lastSqlWriteErrorUtcBinary, DateTime.UtcNow.ToBinary());
+                    OnManagerErrorOccurred(ex, "SQL", $"SQL write failed: {ex.Message}");
                 }
             }
         }

@@ -88,6 +88,9 @@ namespace LP2SVR
                     serviceName,
                     _pollingManager.ActiveWorkerCount,
                     _pollingManager.TotalWorkerCount,
+                    _pollingManager.InitialCycleCompletedAtUtc,
+                    _pollingManager.ConsecutiveSqlWriteErrorCount,
+                    _pollingManager.LastSqlWriteErrorUtc,
                     stoppingToken).ConfigureAwait(false);
 
                 _logger.LogInformation(
@@ -102,6 +105,9 @@ namespace LP2SVR
                         serviceName,
                         _pollingManager.ActiveWorkerCount,
                         _pollingManager.TotalWorkerCount,
+                        _pollingManager.InitialCycleCompletedAtUtc,
+                        _pollingManager.ConsecutiveSqlWriteErrorCount,
+                        _pollingManager.LastSqlWriteErrorUtc,
                         stoppingToken).ConfigureAwait(false);
 
                     await EvaluateSelfRecoveryAsync(serviceName, stoppingToken).ConfigureAwait(false);
@@ -205,24 +211,41 @@ namespace LP2SVR
             }
 
             var requiredErrorCount = Math.Max(3, Math.Min(snapshot.TotalWorkerCount, 10));
-            if (snapshot.ConsecutiveErrorCount < requiredErrorCount)
-            {
-                return;
-            }
-
             var successTimeout = GetSuccessfulPollingTimeout(snapshot);
             string? reason = null;
 
-            if (!snapshot.LastSuccessfulPollUtc.HasValue)
+            var consecutiveSqlWriteErrorCount = _pollingManager.ConsecutiveSqlWriteErrorCount;
+            if (consecutiveSqlWriteErrorCount >= requiredErrorCount)
             {
-                reason = $"No successful polling completed within {startupGracePeriod.TotalMinutes:0.#} minutes after startup. ConsecutiveErrors={snapshot.ConsecutiveErrorCount}.";
-            }
-            else
-            {
-                var lastSuccessAge = nowUtc - snapshot.LastSuccessfulPollUtc.Value;
-                if (lastSuccessAge >= successTimeout)
+                var lastSqlWriteErrorUtc = _pollingManager.LastSqlWriteErrorUtc;
+                var sqlErrorAge = lastSqlWriteErrorUtc.HasValue
+                    ? nowUtc - lastSqlWriteErrorUtc.Value
+                    : TimeSpan.Zero;
+                var sqlErrorRecencyThreshold = TimeSpan.FromSeconds(Math.Max(ServiceHealthMonitor.DefaultHeartbeatIntervalSeconds * 2, 30));
+                if (!lastSqlWriteErrorUtc.HasValue || sqlErrorAge <= sqlErrorRecencyThreshold)
                 {
-                    reason = $"No successful polling for {lastSuccessAge.TotalMinutes:0.#} minutes. Timeout={successTimeout.TotalMinutes:0.#} minutes. ConsecutiveErrors={snapshot.ConsecutiveErrorCount}.";
+                    reason = $"SQL write failure persisted. ConsecutiveSqlErrors={consecutiveSqlWriteErrorCount}. LastSqlErrorAgeSeconds={Math.Max(0, Math.Floor(sqlErrorAge.TotalSeconds))}.";
+                }
+            }
+
+            if (reason == null)
+            {
+                if (snapshot.ConsecutiveErrorCount < requiredErrorCount)
+                {
+                    return;
+                }
+
+                if (!snapshot.LastSuccessfulPollUtc.HasValue)
+                {
+                    reason = $"No successful polling completed within {startupGracePeriod.TotalMinutes:0.#} minutes after startup. ConsecutiveErrors={snapshot.ConsecutiveErrorCount}.";
+                }
+                else
+                {
+                    var lastSuccessAge = nowUtc - snapshot.LastSuccessfulPollUtc.Value;
+                    if (lastSuccessAge >= successTimeout)
+                    {
+                        reason = $"No successful polling for {lastSuccessAge.TotalMinutes:0.#} minutes. Timeout={successTimeout.TotalMinutes:0.#} minutes. ConsecutiveErrors={snapshot.ConsecutiveErrorCount}.";
+                    }
                 }
             }
 

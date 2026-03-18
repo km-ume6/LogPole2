@@ -28,10 +28,13 @@ namespace LP2DTP.Pages
         private TextBlock _monitorSnapshotStateText = null!;
         private TextBlock _monitorStartedAtText = null!;
         private TextBlock _monitorHeartbeatText = null!;
+        private TextBlock _monitorInitialCycleText = null!;
         private TextBlock _monitorLastSuccessText = null!;
         private TextBlock _monitorLastSuccessDeviceText = null!;
         private TextBlock _monitorWorkersText = null!;
         private TextBlock _monitorIntervalsText = null!;
+        private TextBlock _monitorSqlErrorText = null!;
+        private TextBlock _monitorSelfRecoveryText = null!;
         private TextBlock _monitorLastErrorText = null!;
         private TextBlock _statusText = null!;
         private Button _registerServiceButton = null!;
@@ -320,20 +323,26 @@ namespace LP2DTP.Pages
             _monitorSnapshotStateText = CreateMonitorValueTextBlock("Snapshot state: -");
             _monitorStartedAtText = CreateMonitorValueTextBlock("Started at: -");
             _monitorHeartbeatText = CreateMonitorValueTextBlock("Last heartbeat: -");
+            _monitorInitialCycleText = CreateMonitorValueTextBlock("Initial cycle: -");
             _monitorLastSuccessText = CreateMonitorValueTextBlock("Last success: -");
             _monitorLastSuccessDeviceText = CreateMonitorValueTextBlock("Last success device: -");
             _monitorWorkersText = CreateMonitorValueTextBlock("Workers: -");
             _monitorIntervalsText = CreateMonitorValueTextBlock("Intervals: -");
+            _monitorSqlErrorText = CreateMonitorValueTextBlock("SQL write errors: -");
+            _monitorSelfRecoveryText = CreateMonitorValueTextBlock("Self-recovery: -");
             _monitorLastErrorText = CreateMonitorValueTextBlock("Last error: -");
 
             serviceMonitorPanel.Children.Add(_serviceHealthSummaryText);
             serviceMonitorPanel.Children.Add(_monitorSnapshotStateText);
             serviceMonitorPanel.Children.Add(_monitorStartedAtText);
             serviceMonitorPanel.Children.Add(_monitorHeartbeatText);
+            serviceMonitorPanel.Children.Add(_monitorInitialCycleText);
             serviceMonitorPanel.Children.Add(_monitorLastSuccessText);
             serviceMonitorPanel.Children.Add(_monitorLastSuccessDeviceText);
             serviceMonitorPanel.Children.Add(_monitorWorkersText);
             serviceMonitorPanel.Children.Add(_monitorIntervalsText);
+            serviceMonitorPanel.Children.Add(_monitorSqlErrorText);
+            serviceMonitorPanel.Children.Add(_monitorSelfRecoveryText);
             serviceMonitorPanel.Children.Add(_monitorLastErrorText);
             servicePanel.Children.Add(serviceMonitorPanel);
 
@@ -696,10 +705,13 @@ namespace LP2DTP.Pages
                 _monitorSnapshotStateText.Text = "Snapshot state: -";
                 _monitorStartedAtText.Text = "Started at: -";
                 _monitorHeartbeatText.Text = "Last heartbeat: -";
+                _monitorInitialCycleText.Text = "Initial cycle: -";
                 _monitorLastSuccessText.Text = "Last success: -";
                 _monitorLastSuccessDeviceText.Text = "Last success device: -";
                 _monitorWorkersText.Text = "Workers: -";
                 _monitorIntervalsText.Text = "Intervals: -";
+                _monitorSqlErrorText.Text = "SQL write errors: -";
+                _monitorSelfRecoveryText.Text = "Self-recovery: -";
                 _monitorLastErrorText.Text = "Last error: -";
                 return;
             }
@@ -707,26 +719,27 @@ namespace LP2DTP.Pages
             if (!isServiceMatch)
             {
                 ApplySnapshotDisplay($"Monitor data exists for service '{snapshot.ServiceName}'", new SolidColorBrush(new Windows.UI.Color { A = 255, R = 180, G = 120, B = 0 }));
-                _monitorSnapshotStateText.Text = $"Snapshot state: {snapshot.State}";
-                _monitorStartedAtText.Text = $"Started at: {FormatDateTime(snapshot.StartedAtUtc)}";
-                _monitorHeartbeatText.Text = $"Last heartbeat: {FormatDateTime(snapshot.LastHeartbeatUtc)}";
-                _monitorLastSuccessText.Text = $"Last success: {FormatDateTime(snapshot.LastSuccessfulPollUtc)}";
-                _monitorLastSuccessDeviceText.Text = $"Last success device: {FormatDevice(snapshot.LastSuccessfulMachineName, snapshot.LastSuccessfulUnitName, snapshot.LastSuccessfulIpAddress)}";
-                _monitorWorkersText.Text = $"Workers: {snapshot.ActiveWorkerCount}/{snapshot.TotalWorkerCount} (VISA {snapshot.VisaItemCount}, Modbus {snapshot.ModbusItemCount})";
-                _monitorIntervalsText.Text = $"Intervals: Polling {snapshot.PollingIntervalSeconds}s / HealthCheck {snapshot.HealthCheckIntervalSeconds}s / Heartbeat {snapshot.HeartbeatIntervalSeconds}s";
-                _monitorLastErrorText.Text = $"Last error: {FormatLastError(snapshot)}";
+                ApplySnapshotDetails(snapshot);
                 return;
             }
 
             var (summary, brush) = EvaluateMonitorHealth(snapshot, windowsServiceStatus);
             ApplySnapshotDisplay(summary, brush);
+            ApplySnapshotDetails(snapshot);
+        }
+
+        private void ApplySnapshotDetails(ServiceHealthSnapshot snapshot)
+        {
             _monitorSnapshotStateText.Text = $"Snapshot state: {snapshot.State}";
             _monitorStartedAtText.Text = $"Started at: {FormatDateTime(snapshot.StartedAtUtc)}";
             _monitorHeartbeatText.Text = $"Last heartbeat: {FormatDateTime(snapshot.LastHeartbeatUtc)}";
+            _monitorInitialCycleText.Text = $"Initial cycle: {FormatInitialCycle(snapshot)}";
             _monitorLastSuccessText.Text = $"Last success: {FormatDateTime(snapshot.LastSuccessfulPollUtc)}";
             _monitorLastSuccessDeviceText.Text = $"Last success device: {FormatDevice(snapshot.LastSuccessfulMachineName, snapshot.LastSuccessfulUnitName, snapshot.LastSuccessfulIpAddress)}";
             _monitorWorkersText.Text = $"Workers: {snapshot.ActiveWorkerCount}/{snapshot.TotalWorkerCount} (VISA {snapshot.VisaItemCount}, Modbus {snapshot.ModbusItemCount})";
             _monitorIntervalsText.Text = $"Intervals: Polling {snapshot.PollingIntervalSeconds}s / HealthCheck {snapshot.HealthCheckIntervalSeconds}s / Heartbeat {snapshot.HeartbeatIntervalSeconds}s";
+            _monitorSqlErrorText.Text = $"SQL write errors: {FormatSqlErrors(snapshot)}";
+            _monitorSelfRecoveryText.Text = $"Self-recovery: {FormatSelfRecovery(snapshot)}";
             _monitorLastErrorText.Text = $"Last error: {FormatLastError(snapshot)}";
         }
 
@@ -760,17 +773,37 @@ namespace LP2DTP.Pages
                 return ($"Heartbeat stale ({Math.Floor(heartbeatAge.TotalSeconds)}s ago)", new SolidColorBrush(new Windows.UI.Color { A = 255, R = 255, G = 0, B = 0 }));
             }
 
-            if (!snapshot.LastSuccessfulPollUtc.HasValue)
+            if (snapshot.SelfRecoverySuppressedUntilUtc.HasValue && snapshot.SelfRecoverySuppressedUntilUtc.Value > nowUtc)
             {
-                return ("No successful polling yet", new SolidColorBrush(new Windows.UI.Color { A = 255, R = 255, G = 140, B = 0 }));
+                return ($"Self-recovery suppressed until {snapshot.SelfRecoverySuppressedUntilUtc.Value.ToLocalTime():yyyy-MM-dd HH:mm:ss}", new SolidColorBrush(new Windows.UI.Color { A = 255, R = 255, G = 0, B = 0 }));
+            }
+
+            if (!snapshot.InitialCycleCompletedAtUtc.HasValue)
+            {
+                return ("Initial polling cycle in progress", new SolidColorBrush(new Windows.UI.Color { A = 255, R = 255, G = 140, B = 0 }));
             }
 
             var pollingIntervalSeconds = snapshot.PollingIntervalSeconds > 0 ? snapshot.PollingIntervalSeconds : 1;
             var successTimeout = TimeSpan.FromSeconds(Math.Max(pollingIntervalSeconds * 5, 60));
+            if (!snapshot.LastSuccessfulPollUtc.HasValue)
+            {
+                if (snapshot.ConsecutiveSqlWriteErrorCount > 0)
+                {
+                    return ($"No successful polling yet / SQL errors={snapshot.ConsecutiveSqlWriteErrorCount}", new SolidColorBrush(new Windows.UI.Color { A = 255, R = 255, G = 140, B = 0 }));
+                }
+
+                return ("No successful polling yet", new SolidColorBrush(new Windows.UI.Color { A = 255, R = 255, G = 140, B = 0 }));
+            }
+
             var successAge = nowUtc - snapshot.LastSuccessfulPollUtc.Value;
             if (successAge > successTimeout)
             {
                 return ($"No recent successful polling ({Math.Floor(successAge.TotalSeconds)}s ago)", new SolidColorBrush(new Windows.UI.Color { A = 255, R = 255, G = 0, B = 0 }));
+            }
+
+            if (snapshot.ConsecutiveSqlWriteErrorCount > 0)
+            {
+                return ($"Polling healthy / SQL errors={snapshot.ConsecutiveSqlWriteErrorCount}", new SolidColorBrush(new Windows.UI.Color { A = 255, R = 255, G = 140, B = 0 }));
             }
 
             return ($"Healthy (last success {Math.Floor(successAge.TotalSeconds)}s ago)", new SolidColorBrush(new Windows.UI.Color { A = 255, R = 0, G = 128, B = 0 }));
@@ -799,6 +832,43 @@ namespace LP2DTP.Pages
             }
 
             return $"{FormatDateTime(snapshot.LastErrorUtc)} | Count={snapshot.ConsecutiveErrorCount} | {snapshot.LastErrorMessage ?? "-"}";
+        }
+
+        private static string FormatInitialCycle(ServiceHealthSnapshot snapshot)
+        {
+            return snapshot.InitialCycleCompletedAtUtc.HasValue
+                ? $"Completed at {FormatDateTime(snapshot.InitialCycleCompletedAtUtc)}"
+                : "Waiting for first scheduled cycle completion";
+        }
+
+        private static string FormatSqlErrors(ServiceHealthSnapshot snapshot)
+        {
+            if (snapshot.ConsecutiveSqlWriteErrorCount <= 0 && !snapshot.LastSqlWriteErrorUtc.HasValue)
+            {
+                return "0";
+            }
+
+            return $"Count={snapshot.ConsecutiveSqlWriteErrorCount} | Last={FormatDateTime(snapshot.LastSqlWriteErrorUtc)}";
+        }
+
+        private static string FormatSelfRecovery(ServiceHealthSnapshot snapshot)
+        {
+            if (snapshot.SelfRecoverySuppressedUntilUtc.HasValue && snapshot.SelfRecoverySuppressedUntilUtc.Value > DateTime.UtcNow)
+            {
+                return $"Suppressed until {FormatDateTime(snapshot.SelfRecoverySuppressedUntilUtc)} | Attempts={snapshot.SelfRecoveryAttemptCount}";
+            }
+
+            if (snapshot.LastSelfRecoveryTriggeredAtUtc.HasValue)
+            {
+                return $"Last restart trigger {FormatDateTime(snapshot.LastSelfRecoveryTriggeredAtUtc)} | Attempts={snapshot.SelfRecoveryAttemptCount}";
+            }
+
+            if (snapshot.SelfRecoveryAttemptCount > 0)
+            {
+                return $"Attempts={snapshot.SelfRecoveryAttemptCount}";
+            }
+
+            return "No self-recovery activity";
         }
 
         private string GetSelectedServiceName()
