@@ -20,6 +20,7 @@ namespace LP2DTP.Common.Models
         public string? LastErrorIpAddress { get; set; }
         public int ConsecutiveErrorCount { get; set; }
         public int ConsecutiveSqlWriteErrorCount { get; set; }
+        public int PendingSqlWriteCount { get; set; }
         public DateTime? LastSqlWriteErrorUtc { get; set; }
         public int ActiveWorkerCount { get; set; }
         public int TotalWorkerCount { get; set; }
@@ -54,6 +55,7 @@ namespace LP2DTP.Common.Models
                 LastErrorIpAddress = LastErrorIpAddress,
                 ConsecutiveErrorCount = ConsecutiveErrorCount,
                 ConsecutiveSqlWriteErrorCount = ConsecutiveSqlWriteErrorCount,
+                PendingSqlWriteCount = PendingSqlWriteCount,
                 LastSqlWriteErrorUtc = LastSqlWriteErrorUtc,
                 ActiveWorkerCount = ActiveWorkerCount,
                 TotalWorkerCount = TotalWorkerCount,

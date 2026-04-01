@@ -1,5 +1,7 @@
 ﻿Option Explicit
 
+Private SelectedMachineName As String
+
 Private Sub ComboBox1_Change()
     Dim rgStart As Range: Set rgStart = Sheet1.Range("BeginChart")
     Dim rgEnd As Range:  Set rgEnd = Sheet1.Range("EndChart")
@@ -18,8 +20,13 @@ Private Sub Worksheet_Change(ByVal Target As Range)
     
     If HasName Then
         Select Case Target.Name.Name
-            Case "MachineName": SetDateRange (Sheet1.Range("MachineName"))
+            Case "MachineName"
+                If SelectedMachineName <> Target Then
+                    Call SetDateRange(Sheet1.Range("MachineName"))
+                End If
             Case Else:
         End Select
+    
+        SelectedMachineName = Target
     End If
 End Sub

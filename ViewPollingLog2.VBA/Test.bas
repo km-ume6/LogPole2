@@ -98,3 +98,6 @@ Sub ModifyMachineNamesTable()
     End If
 End Sub
 
+Sub WriteViewerLog()
+    LogWorkbookOpen
+End Sub

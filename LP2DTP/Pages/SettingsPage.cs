@@ -843,12 +843,14 @@ namespace LP2DTP.Pages
 
         private static string FormatSqlErrors(ServiceHealthSnapshot snapshot)
         {
-            if (snapshot.ConsecutiveSqlWriteErrorCount <= 0 && !snapshot.LastSqlWriteErrorUtc.HasValue)
+            if (snapshot.ConsecutiveSqlWriteErrorCount <= 0
+                && !snapshot.LastSqlWriteErrorUtc.HasValue
+                && snapshot.PendingSqlWriteCount <= 0)
             {
-                return "0";
+                return "0 | Pending=0";
             }
 
-            return $"Count={snapshot.ConsecutiveSqlWriteErrorCount} | Last={FormatDateTime(snapshot.LastSqlWriteErrorUtc)}";
+            return $"Count={snapshot.ConsecutiveSqlWriteErrorCount} | Last={FormatDateTime(snapshot.LastSqlWriteErrorUtc)} | Pending={snapshot.PendingSqlWriteCount}";
         }
 
         private static string FormatSelfRecovery(ServiceHealthSnapshot snapshot)

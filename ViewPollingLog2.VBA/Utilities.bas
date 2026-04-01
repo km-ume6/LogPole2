@@ -136,4 +136,3 @@ Function GetChartObjectByName(ByVal chartName As String, Optional ByVal targetSh
     Set GetChartObjectByName = Nothing
 
 End Function
-

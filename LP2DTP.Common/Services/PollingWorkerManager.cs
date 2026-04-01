@@ -15,6 +15,7 @@ namespace LP2DTP.Common.Services
         private readonly ConcurrentDictionary<string, IPollingWorker> _workers = new();
         private readonly ConcurrentDictionary<IPollingWorker, bool> _initialCycleCompletionStates = new();
         private readonly ConcurrentQueue<PollingDataReceivedEventArgs> _pendingSqlWrites = new();
+        private const int MaxPendingSqlWrites = 20000;
         private long _currentCycleTimestampBinary = DateTime.Now.ToBinary();
         private bool _disposed;
         private int _pollingIntervalSeconds = 1;
@@ -25,6 +26,7 @@ namespace LP2DTP.Common.Services
         private long _initialCycleCompletedAtUtcBinary;
         private int _consecutiveSqlWriteErrorCount;
         private long _lastSqlWriteErrorUtcBinary;
+        private long _nextSqlWriteRetryAtUtcBinary;
         private readonly PollingLogService _logService = PollingLogService.Instance;
         private readonly PollingSqlLoggingService _sqlLoggingService = new();
 
@@ -369,6 +371,8 @@ namespace LP2DTP.Common.Services
 
         public int ConsecutiveSqlWriteErrorCount => Interlocked.CompareExchange(ref _consecutiveSqlWriteErrorCount, 0, 0);
 
+        public int PendingSqlWriteCount => _pendingSqlWrites.Count;
+
         public DateTime? LastSqlWriteErrorUtc
         {
             get
@@ -404,19 +408,39 @@ namespace LP2DTP.Common.Services
             if (IsSqlLoggingEnabled)
             {
                 _pendingSqlWrites.Enqueue(e);
+                while (_pendingSqlWrites.Count > MaxPendingSqlWrites && _pendingSqlWrites.TryDequeue(out _))
+                {
+                }
             }
             DataReceived?.Invoke(this, e);
         }
 
         private async Task FlushPendingSqlWritesAsync(CancellationToken cancellationToken)
         {
-            while (_pendingSqlWrites.TryDequeue(out var data))
+            if (_pendingSqlWrites.IsEmpty)
+            {
+                return;
+            }
+
+            var nextRetryAtUtcBinary = Interlocked.Read(ref _nextSqlWriteRetryAtUtcBinary);
+            if (nextRetryAtUtcBinary != 0)
+            {
+                var nextRetryAtUtc = DateTime.FromBinary(nextRetryAtUtcBinary);
+                if (DateTime.UtcNow < nextRetryAtUtc)
+                {
+                    return;
+                }
+            }
+
+            while (_pendingSqlWrites.TryPeek(out var data))
             {
                 try
                 {
                     await _sqlLoggingService.WriteAsync(data, cancellationToken).ConfigureAwait(false);
+                    _pendingSqlWrites.TryDequeue(out _);
                     Interlocked.Exchange(ref _consecutiveSqlWriteErrorCount, 0);
                     Interlocked.Exchange(ref _lastSqlWriteErrorUtcBinary, 0);
+                    Interlocked.Exchange(ref _nextSqlWriteRetryAtUtcBinary, 0);
                 }
                 catch (OperationCanceledException)
                 {
@@ -424,9 +448,16 @@ namespace LP2DTP.Common.Services
                 }
                 catch (Exception ex)
                 {
-                    Interlocked.Increment(ref _consecutiveSqlWriteErrorCount);
-                    Interlocked.Exchange(ref _lastSqlWriteErrorUtcBinary, DateTime.UtcNow.ToBinary());
-                    OnManagerErrorOccurred(ex, "SQL", $"SQL write failed: {ex.Message}");
+                    var errorCount = Interlocked.Increment(ref _consecutiveSqlWriteErrorCount);
+                    var nowUtc = DateTime.UtcNow;
+                    Interlocked.Exchange(ref _lastSqlWriteErrorUtcBinary, nowUtc.ToBinary());
+
+                    var retryDelaySeconds = Math.Min(Math.Max(1, errorCount), 30);
+                    var nextRetryAtUtc = nowUtc.AddSeconds(retryDelaySeconds);
+                    Interlocked.Exchange(ref _nextSqlWriteRetryAtUtcBinary, nextRetryAtUtc.ToBinary());
+
+                    OnManagerErrorOccurred(ex, "SQL", $"SQL write failed. Pending={_pendingSqlWrites.Count} RetryAfterSeconds={retryDelaySeconds} Message={ex.Message}");
+                    break;
                 }
             }
         }

@@ -96,6 +96,7 @@ Sub SetDateRange(machineName As String)
                 End If
     
                 Range("EndChart") = endDate
+                Call ComboBoxChanged
             End If
             
             rs.Close
@@ -324,8 +325,6 @@ Sub SetChartSourceToTable2(tableName As String, chartName As String)
         Exit Sub
     End If
 
-    Call SetMarkerSizeForAllSeries(chartName, 3)
-
     Set myChartObject = GetChartObjectByName(chartName)
 
     If myChartObject Is Nothing Then
@@ -362,6 +361,8 @@ Sub SetChartSourceToTable2(tableName As String, chartName As String)
             
         Next ser
     End With
+
+    Call SetMarkerSizeForAllSeries(chartName, 3)
 
     Exit Sub
 
@@ -489,5 +490,37 @@ Sub SetMarkerSizeForAllSeries(chartName As String, markerSize As Integer)
 
 ErrorHandler:
     MsgBox "エラーが発生しました: " & Err.Description, vbCritical
+End Sub
+
+Sub LogWorkbookOpen()
+    On Error Resume Next
+
+    Dim userName As String
+    Dim pcName As String
+
+    userName = Environ$("USERNAME")
+    If Len(userName) = 0 Then userName = Application.userName
+
+    pcName = Environ$("COMPUTERNAME")
+    If Len(pcName) = 0 Then pcName = "UnknownPC"
+
+    With New DatabaseUtility
+        .OpenConnection
+
+        Dim params As New Collection
+        params.Add userName
+        params.Add pcName
+
+        ' OpenedAt はテーブルの DEFAULT(GETDATE()) を使う
+        Call .ExecuteNonQuery("INSERT INTO WorkbookOpenLog (UserName, PCName) VALUES (?, ?)", params)
+        .CloseConnection
+    End With
+
+    If Err.Number <> 0 Then
+        Debug.Print "Workbook open log insert failed: " & Err.Number & " - " & Err.Description
+        Err.Clear
+    End If
+
+    On Error GoTo 0
 End Sub
 

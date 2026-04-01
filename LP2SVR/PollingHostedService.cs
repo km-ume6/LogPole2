@@ -11,6 +11,7 @@ namespace LP2SVR
     public sealed class PollingHostedService : BackgroundService
     {
         private static readonly TimeSpan MinimumSelfRecoveryGracePeriod = TimeSpan.FromMinutes(3);
+        private static readonly TimeSpan ServiceRestartRetryDelay = TimeSpan.FromSeconds(10);
 
         private readonly PollingWorkerManager _pollingManager;
         private readonly AppSettingsService _appSettingsService;
@@ -42,106 +43,139 @@ namespace LP2SVR
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             var serviceName = GetServiceName();
-            var shouldMarkStopped = true;
+            var restartAttempt = 0;
             _pollingManager.DataReceived += PollingManager_DataReceived;
             _pollingManager.ErrorOccurred += PollingManager_ErrorOccurred;
 
             try
             {
-                await _serviceHealthMonitor.MarkStartingAsync(serviceName, stoppingToken).ConfigureAwait(false);
-
-                var settings = await _appSettingsService.LoadSettingsAsync().ConfigureAwait(false);
-                _pollingManager.PollingIntervalSeconds = settings.PollingIntervalSeconds;
-                _pollingManager.HealthCheckIntervalSeconds = settings.HealthCheckIntervalSeconds;
-
-                var visaItems = await _visaItemService.LoadAsync().ConfigureAwait(false);
-                foreach (var item in visaItems)
+                while (!stoppingToken.IsCancellationRequested)
                 {
-                    _pollingManager.AddVisaItem(item);
+                    var shouldMarkStopped = true;
+                    try
+                    {
+                        await _serviceHealthMonitor.MarkStartingAsync(serviceName, stoppingToken).ConfigureAwait(false);
+
+                        var settings = await _appSettingsService.LoadSettingsAsync().ConfigureAwait(false);
+                        _pollingManager.PollingIntervalSeconds = settings.PollingIntervalSeconds;
+                        _pollingManager.HealthCheckIntervalSeconds = settings.HealthCheckIntervalSeconds;
+
+                        var visaItems = await _visaItemService.LoadAsync().ConfigureAwait(false);
+                        foreach (var item in visaItems)
+                        {
+                            _pollingManager.AddVisaItem(item);
+                        }
+
+                        var modbusItems = await _modbusItemService.LoadAsync().ConfigureAwait(false);
+                        foreach (var item in modbusItems)
+                        {
+                            _pollingManager.AddModbusItem(item);
+                        }
+
+                        await _serviceHealthMonitor.ApplyConfigurationAsync(
+                            serviceName,
+                            settings.PollingIntervalSeconds,
+                            settings.HealthCheckIntervalSeconds,
+                            visaItems.Count,
+                            modbusItems.Count,
+                            _pollingManager.ActiveWorkerCount,
+                            _pollingManager.TotalWorkerCount,
+                            stoppingToken).ConfigureAwait(false);
+
+                        _logger.LogInformation(
+                            "Loaded {VisaCount} VISA items and {ModbusCount} Modbus items. Polling={PollingIntervalSeconds}s HealthCheck={HealthCheckIntervalSeconds}s.",
+                            visaItems.Count,
+                            modbusItems.Count,
+                            settings.PollingIntervalSeconds,
+                            settings.HealthCheckIntervalSeconds);
+
+                        await _pollingManager.StartAllAsync().ConfigureAwait(false);
+                        await _serviceHealthMonitor.MarkRunningAsync(
+                            serviceName,
+                            _pollingManager.ActiveWorkerCount,
+                            _pollingManager.TotalWorkerCount,
+                            _pollingManager.InitialCycleCompletedAtUtc,
+                            _pollingManager.ConsecutiveSqlWriteErrorCount,
+                            _pollingManager.PendingSqlWriteCount,
+                            _pollingManager.LastSqlWriteErrorUtc,
+                            stoppingToken).ConfigureAwait(false);
+
+                        _logger.LogInformation(
+                            "Polling started. Active workers: {ActiveWorkerCount}. Total workers: {TotalWorkerCount}.",
+                            _pollingManager.ActiveWorkerCount,
+                            _pollingManager.TotalWorkerCount);
+
+                        restartAttempt = 0;
+                        using var heartbeatTimer = new PeriodicTimer(TimeSpan.FromSeconds(ServiceHealthMonitor.DefaultHeartbeatIntervalSeconds));
+                        while (await heartbeatTimer.WaitForNextTickAsync(stoppingToken).ConfigureAwait(false))
+                        {
+                            await _serviceHealthMonitor.UpdateHeartbeatAsync(
+                                serviceName,
+                                _pollingManager.ActiveWorkerCount,
+                                _pollingManager.TotalWorkerCount,
+                                _pollingManager.InitialCycleCompletedAtUtc,
+                                _pollingManager.ConsecutiveSqlWriteErrorCount,
+                                _pollingManager.PendingSqlWriteCount,
+                                _pollingManager.LastSqlWriteErrorUtc,
+                                stoppingToken).ConfigureAwait(false);
+
+                            await EvaluateSelfRecoveryAsync(serviceName, stoppingToken).ConfigureAwait(false);
+                        }
+
+                        break;
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        break;
+                    }
+                    catch (Exception ex)
+                    {
+                        shouldMarkStopped = false;
+                        restartAttempt++;
+                        await _serviceHealthMonitor.MarkFaultedAsync(serviceName, ex, CancellationToken.None).ConfigureAwait(false);
+                        _logger.LogError(
+                            ex,
+                            "LP2SVR failed while starting or running. Retry attempt={RestartAttempt}. Next retry in {RetryDelaySeconds}s.",
+                            restartAttempt,
+                            (int)ServiceRestartRetryDelay.TotalSeconds);
+                    }
+                    finally
+                    {
+                        try
+                        {
+                            await _pollingManager.StopAllAsync().ConfigureAwait(false);
+                            if (shouldMarkStopped)
+                            {
+                                await _serviceHealthMonitor.MarkStoppedAsync(serviceName, CancellationToken.None).ConfigureAwait(false);
+                            }
+                            _logger.LogInformation("Polling stopped.");
+                        }
+                        catch (Exception ex)
+                        {
+                            await _serviceHealthMonitor.MarkFaultedAsync(serviceName, ex, CancellationToken.None).ConfigureAwait(false);
+                            _logger.LogError(ex, "Failed to stop polling cleanly.");
+                        }
+                    }
+
+                    if (stoppingToken.IsCancellationRequested)
+                    {
+                        break;
+                    }
+
+                    try
+                    {
+                        await Task.Delay(ServiceRestartRetryDelay, stoppingToken).ConfigureAwait(false);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        break;
+                    }
                 }
-
-                var modbusItems = await _modbusItemService.LoadAsync().ConfigureAwait(false);
-                foreach (var item in modbusItems)
-                {
-                    _pollingManager.AddModbusItem(item);
-                }
-
-                await _serviceHealthMonitor.ApplyConfigurationAsync(
-                    serviceName,
-                    settings.PollingIntervalSeconds,
-                    settings.HealthCheckIntervalSeconds,
-                    visaItems.Count,
-                    modbusItems.Count,
-                    _pollingManager.ActiveWorkerCount,
-                    _pollingManager.TotalWorkerCount,
-                    stoppingToken).ConfigureAwait(false);
-
-                _logger.LogInformation(
-                    "Loaded {VisaCount} VISA items and {ModbusCount} Modbus items. Polling={PollingIntervalSeconds}s HealthCheck={HealthCheckIntervalSeconds}s.",
-                    visaItems.Count,
-                    modbusItems.Count,
-                    settings.PollingIntervalSeconds,
-                    settings.HealthCheckIntervalSeconds);
-
-                await _pollingManager.StartAllAsync().ConfigureAwait(false);
-                await _serviceHealthMonitor.MarkRunningAsync(
-                    serviceName,
-                    _pollingManager.ActiveWorkerCount,
-                    _pollingManager.TotalWorkerCount,
-                    _pollingManager.InitialCycleCompletedAtUtc,
-                    _pollingManager.ConsecutiveSqlWriteErrorCount,
-                    _pollingManager.LastSqlWriteErrorUtc,
-                    stoppingToken).ConfigureAwait(false);
-
-                _logger.LogInformation(
-                    "Polling started. Active workers: {ActiveWorkerCount}. Total workers: {TotalWorkerCount}.",
-                    _pollingManager.ActiveWorkerCount,
-                    _pollingManager.TotalWorkerCount);
-
-                using var heartbeatTimer = new PeriodicTimer(TimeSpan.FromSeconds(ServiceHealthMonitor.DefaultHeartbeatIntervalSeconds));
-                while (await heartbeatTimer.WaitForNextTickAsync(stoppingToken).ConfigureAwait(false))
-                {
-                    await _serviceHealthMonitor.UpdateHeartbeatAsync(
-                        serviceName,
-                        _pollingManager.ActiveWorkerCount,
-                        _pollingManager.TotalWorkerCount,
-                        _pollingManager.InitialCycleCompletedAtUtc,
-                        _pollingManager.ConsecutiveSqlWriteErrorCount,
-                        _pollingManager.LastSqlWriteErrorUtc,
-                        stoppingToken).ConfigureAwait(false);
-
-                    await EvaluateSelfRecoveryAsync(serviceName, stoppingToken).ConfigureAwait(false);
-                }
-            }
-            catch (OperationCanceledException)
-            {
-            }
-            catch (Exception ex)
-            {
-                shouldMarkStopped = false;
-                await _serviceHealthMonitor.MarkFaultedAsync(serviceName, ex, CancellationToken.None).ConfigureAwait(false);
-                _logger.LogError(ex, "LP2SVR failed while starting or running.");
-                throw;
             }
             finally
             {
                 _pollingManager.DataReceived -= PollingManager_DataReceived;
                 _pollingManager.ErrorOccurred -= PollingManager_ErrorOccurred;
-
-                try
-                {
-                    await _pollingManager.StopAllAsync().ConfigureAwait(false);
-                    if (shouldMarkStopped)
-                    {
-                        await _serviceHealthMonitor.MarkStoppedAsync(serviceName, CancellationToken.None).ConfigureAwait(false);
-                    }
-                    _logger.LogInformation("Polling stopped.");
-                }
-                catch (Exception ex)
-                {
-                    await _serviceHealthMonitor.MarkFaultedAsync(serviceName, ex, CancellationToken.None).ConfigureAwait(false);
-                    _logger.LogError(ex, "Failed to stop polling cleanly.");
-                }
             }
         }
 
@@ -155,13 +189,32 @@ namespace LP2SVR
 
         private void PollingManager_ErrorOccurred(object? sender, PollingErrorEventArgs e)
         {
-            _serviceHealthMonitor.RecordError(
-                e,
-                _pollingManager.ActiveWorkerCount,
-                _pollingManager.TotalWorkerCount);
+            var isSqlWriteError = string.Equals(e.Command, "SQL", StringComparison.OrdinalIgnoreCase);
+            var isDeviceCommunicationError = IsDeviceCommunicationError(e);
+
+            if (!isSqlWriteError && !isDeviceCommunicationError)
+            {
+                _serviceHealthMonitor.RecordError(
+                    e,
+                    _pollingManager.ActiveWorkerCount,
+                    _pollingManager.TotalWorkerCount);
+            }
 
             if (e.Exception != null)
             {
+                if (isSqlWriteError || isDeviceCommunicationError)
+                {
+                    _logger.LogWarning(
+                        e.Exception,
+                        "Deferred non-fatal polling error (no restart). Command={Command} Machine={MachineName} Unit={UnitName} Ip={IpAddress} Message={ErrorMessage}",
+                        e.Command,
+                        e.MachineName,
+                        e.UnitName,
+                        e.IpAddress,
+                        e.ErrorMessage);
+                    return;
+                }
+
                 _logger.LogError(
                     e.Exception,
                     "Polling error. Machine={MachineName} Unit={UnitName} Ip={IpAddress} Command={Command} Message={ErrorMessage}",
@@ -173,6 +226,18 @@ namespace LP2SVR
                 return;
             }
 
+            if (isSqlWriteError || isDeviceCommunicationError)
+            {
+                _logger.LogWarning(
+                    "Deferred non-fatal polling error (no restart). Command={Command} Machine={MachineName} Unit={UnitName} Ip={IpAddress} Message={ErrorMessage}",
+                    e.Command,
+                    e.MachineName,
+                    e.UnitName,
+                    e.IpAddress,
+                    e.ErrorMessage);
+                return;
+            }
+
             _logger.LogError(
                 "Polling error. Machine={MachineName} Unit={UnitName} Ip={IpAddress} Command={Command} Message={ErrorMessage}",
                 e.MachineName,
@@ -180,6 +245,13 @@ namespace LP2SVR
                 e.IpAddress,
                 e.Command,
                 e.ErrorMessage);
+        }
+
+        private static bool IsDeviceCommunicationError(PollingErrorEventArgs e)
+        {
+            return !string.IsNullOrWhiteSpace(e.MachineName)
+                || !string.IsNullOrWhiteSpace(e.UnitName)
+                || !string.IsNullOrWhiteSpace(e.IpAddress);
         }
 
         private async Task EvaluateSelfRecoveryAsync(string serviceName, CancellationToken cancellationToken)
@@ -214,38 +286,21 @@ namespace LP2SVR
             var successTimeout = GetSuccessfulPollingTimeout(snapshot);
             string? reason = null;
 
-            var consecutiveSqlWriteErrorCount = _pollingManager.ConsecutiveSqlWriteErrorCount;
-            if (consecutiveSqlWriteErrorCount >= requiredErrorCount)
+            if (snapshot.ConsecutiveErrorCount < requiredErrorCount)
             {
-                var lastSqlWriteErrorUtc = _pollingManager.LastSqlWriteErrorUtc;
-                var sqlErrorAge = lastSqlWriteErrorUtc.HasValue
-                    ? nowUtc - lastSqlWriteErrorUtc.Value
-                    : TimeSpan.Zero;
-                var sqlErrorRecencyThreshold = TimeSpan.FromSeconds(Math.Max(ServiceHealthMonitor.DefaultHeartbeatIntervalSeconds * 2, 30));
-                if (!lastSqlWriteErrorUtc.HasValue || sqlErrorAge <= sqlErrorRecencyThreshold)
-                {
-                    reason = $"SQL write failure persisted. ConsecutiveSqlErrors={consecutiveSqlWriteErrorCount}. LastSqlErrorAgeSeconds={Math.Max(0, Math.Floor(sqlErrorAge.TotalSeconds))}.";
-                }
+                return;
             }
 
-            if (reason == null)
+            if (!snapshot.LastSuccessfulPollUtc.HasValue)
             {
-                if (snapshot.ConsecutiveErrorCount < requiredErrorCount)
+                reason = $"No successful polling completed within {startupGracePeriod.TotalMinutes:0.#} minutes after startup. ConsecutiveErrors={snapshot.ConsecutiveErrorCount}.";
+            }
+            else
+            {
+                var lastSuccessAge = nowUtc - snapshot.LastSuccessfulPollUtc.Value;
+                if (lastSuccessAge >= successTimeout)
                 {
-                    return;
-                }
-
-                if (!snapshot.LastSuccessfulPollUtc.HasValue)
-                {
-                    reason = $"No successful polling completed within {startupGracePeriod.TotalMinutes:0.#} minutes after startup. ConsecutiveErrors={snapshot.ConsecutiveErrorCount}.";
-                }
-                else
-                {
-                    var lastSuccessAge = nowUtc - snapshot.LastSuccessfulPollUtc.Value;
-                    if (lastSuccessAge >= successTimeout)
-                    {
-                        reason = $"No successful polling for {lastSuccessAge.TotalMinutes:0.#} minutes. Timeout={successTimeout.TotalMinutes:0.#} minutes. ConsecutiveErrors={snapshot.ConsecutiveErrorCount}.";
-                    }
+                    reason = $"No successful polling for {lastSuccessAge.TotalMinutes:0.#} minutes. Timeout={successTimeout.TotalMinutes:0.#} minutes. ConsecutiveErrors={snapshot.ConsecutiveErrorCount}.";
                 }
             }
 

@@ -76,6 +76,7 @@ namespace LP2DTP.Common.Services
                     LastErrorIpAddress = existingSnapshot.LastErrorIpAddress,
                     ConsecutiveErrorCount = existingSnapshot.ConsecutiveErrorCount,
                     ConsecutiveSqlWriteErrorCount = 0,
+                    PendingSqlWriteCount = 0,
                     PollingIntervalSeconds = existingSnapshot.PollingIntervalSeconds,
                     HealthCheckIntervalSeconds = existingSnapshot.HealthCheckIntervalSeconds,
                     HeartbeatIntervalSeconds = DefaultHeartbeatIntervalSeconds,
@@ -121,6 +122,7 @@ namespace LP2DTP.Common.Services
             int totalWorkerCount,
             DateTime? initialCycleCompletedAtUtc,
             int consecutiveSqlWriteErrorCount,
+            int pendingSqlWriteCount,
             DateTime? lastSqlWriteErrorUtc,
             CancellationToken cancellationToken = default)
         {
@@ -132,6 +134,7 @@ namespace LP2DTP.Common.Services
                 _snapshot.LastHeartbeatUtc = nowUtc;
                 _snapshot.InitialCycleCompletedAtUtc = initialCycleCompletedAtUtc;
                 _snapshot.ConsecutiveSqlWriteErrorCount = Math.Max(0, consecutiveSqlWriteErrorCount);
+                _snapshot.PendingSqlWriteCount = Math.Max(0, pendingSqlWriteCount);
                 _snapshot.LastSqlWriteErrorUtc = lastSqlWriteErrorUtc;
                 _snapshot.ActiveWorkerCount = Math.Max(0, activeWorkerCount);
                 _snapshot.TotalWorkerCount = Math.Max(0, totalWorkerCount);
@@ -147,6 +150,7 @@ namespace LP2DTP.Common.Services
             int totalWorkerCount,
             DateTime? initialCycleCompletedAtUtc,
             int consecutiveSqlWriteErrorCount,
+            int pendingSqlWriteCount,
             DateTime? lastSqlWriteErrorUtc,
             CancellationToken cancellationToken = default)
         {
@@ -158,6 +162,7 @@ namespace LP2DTP.Common.Services
                 _snapshot.LastHeartbeatUtc = nowUtc;
                 _snapshot.InitialCycleCompletedAtUtc = initialCycleCompletedAtUtc;
                 _snapshot.ConsecutiveSqlWriteErrorCount = Math.Max(0, consecutiveSqlWriteErrorCount);
+                _snapshot.PendingSqlWriteCount = Math.Max(0, pendingSqlWriteCount);
                 _snapshot.LastSqlWriteErrorUtc = lastSqlWriteErrorUtc;
                 _snapshot.ActiveWorkerCount = Math.Max(0, activeWorkerCount);
                 _snapshot.TotalWorkerCount = Math.Max(0, totalWorkerCount);
@@ -186,6 +191,7 @@ namespace LP2DTP.Common.Services
                 _snapshot.ActiveWorkerCount = Math.Max(0, activeWorkerCount);
                 _snapshot.TotalWorkerCount = Math.Max(0, totalWorkerCount);
                 _snapshot.ConsecutiveErrorCount = 0;
+                _snapshot.PendingSqlWriteCount = 0;
                 _snapshot.SelfRecoveryWindowStartedAtUtc = null;
                 _snapshot.SelfRecoveryAttemptCount = 0;
                 _snapshot.LastSelfRecoveryTriggeredAtUtc = null;
@@ -226,6 +232,7 @@ namespace LP2DTP.Common.Services
                 _snapshot.State = "Stopped";
                 _snapshot.LastHeartbeatUtc = nowUtc;
                 _snapshot.ActiveWorkerCount = 0;
+                _snapshot.PendingSqlWriteCount = 0;
                 _snapshot.UpdatedAtUtc = nowUtc;
             }
 

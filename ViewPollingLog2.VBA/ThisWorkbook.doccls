@@ -1,5 +1,6 @@
 ﻿Option Explicit
 
 Private Sub Workbook_Open()
+    LogWorkbookOpen
     SetMachineNames
 End Sub
