@@ -18,9 +18,13 @@ namespace LP2SVR
         private readonly VisaItemService _visaItemService;
         private readonly ModbusItemService _modbusItemService;
         private readonly ServiceHealthMonitor _serviceHealthMonitor;
+        private readonly SqlWriteAlertMailer _sqlWriteAlertMailer;
         private readonly IConfiguration _configuration;
         private readonly ILogger<PollingHostedService> _logger;
         private DateTime _lastSelfRecoveryWarningLoggedAtUtc = DateTime.MinValue;
+        private DateTime? _sqlWriteFailureStartedAtUtc;
+        private DateTime _lastSqlWriteFailureAlertSentAtUtc = DateTime.MinValue;
+        private bool _sqlWriteFailureAlertActive;
 
         public PollingHostedService(
             PollingWorkerManager pollingManager,
@@ -28,6 +32,7 @@ namespace LP2SVR
             VisaItemService visaItemService,
             ModbusItemService modbusItemService,
             ServiceHealthMonitor serviceHealthMonitor,
+            SqlWriteAlertMailer sqlWriteAlertMailer,
             IConfiguration configuration,
             ILogger<PollingHostedService> logger)
         {
@@ -36,6 +41,7 @@ namespace LP2SVR
             _visaItemService = visaItemService;
             _modbusItemService = modbusItemService;
             _serviceHealthMonitor = serviceHealthMonitor;
+            _sqlWriteAlertMailer = sqlWriteAlertMailer;
             _configuration = configuration;
             _logger = logger;
         }
@@ -100,6 +106,16 @@ namespace LP2SVR
                             _pollingManager.LastSqlWriteErrorUtc,
                             stoppingToken).ConfigureAwait(false);
 
+                        try
+                        {
+                            await _sqlWriteAlertMailer.SendServiceStartedAsync(serviceName, stoppingToken).ConfigureAwait(false);
+                            _logger.LogInformation("Service start mail sent.");
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogWarning(ex, "Failed to send service start mail.");
+                        }
+
                         _logger.LogInformation(
                             "Polling started. Active workers: {ActiveWorkerCount}. Total workers: {TotalWorkerCount}.",
                             _pollingManager.ActiveWorkerCount,
@@ -119,6 +135,7 @@ namespace LP2SVR
                                 _pollingManager.LastSqlWriteErrorUtc,
                                 stoppingToken).ConfigureAwait(false);
 
+                            await EvaluateSqlWriteAlertAsync(serviceName, stoppingToken).ConfigureAwait(false);
                             await EvaluateSelfRecoveryAsync(serviceName, stoppingToken).ConfigureAwait(false);
                         }
 
@@ -148,6 +165,17 @@ namespace LP2SVR
                             {
                                 await _serviceHealthMonitor.MarkStoppedAsync(serviceName, CancellationToken.None).ConfigureAwait(false);
                             }
+
+                            try
+                            {
+                                await _sqlWriteAlertMailer.SendServiceStoppedAsync(serviceName, CancellationToken.None).ConfigureAwait(false);
+                                _logger.LogInformation("Service stop mail sent.");
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.LogWarning(ex, "Failed to send service stop mail.");
+                            }
+
                             _logger.LogInformation("Polling stopped.");
                         }
                         catch (Exception ex)
@@ -366,6 +394,79 @@ namespace LP2SVR
             return string.IsNullOrWhiteSpace(serviceName)
                 ? "LP2SVR"
                 : serviceName.Trim();
+        }
+
+        private async Task EvaluateSqlWriteAlertAsync(string serviceName, CancellationToken cancellationToken)
+        {
+            var snapshot = _serviceHealthMonitor.GetCurrentSnapshot();
+            var hasSqlWriteFailure = snapshot.ConsecutiveSqlWriteErrorCount > 0 && snapshot.PendingSqlWriteCount > 0;
+
+            if (!hasSqlWriteFailure)
+            {
+                _sqlWriteFailureStartedAtUtc = null;
+                _lastSqlWriteFailureAlertSentAtUtc = DateTime.MinValue;
+
+                if (_sqlWriteFailureAlertActive)
+                {
+                    _sqlWriteFailureAlertActive = false;
+                    try
+                    {
+                        await _sqlWriteAlertMailer.SendRecoveryAsync(serviceName, cancellationToken).ConfigureAwait(false);
+                        _logger.LogInformation("SQL write failure recovery mail sent.");
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Failed to send SQL write recovery mail.");
+                    }
+                }
+
+                return;
+            }
+
+            var nowUtc = DateTime.UtcNow;
+            _sqlWriteFailureStartedAtUtc ??= nowUtc;
+
+            var thresholdSeconds = Math.Clamp(GetIntConfiguration("AlertMail:SqlWriteFailureThresholdSeconds", 3600), 1, 3600);
+            var resendIntervalSeconds = Math.Clamp(GetIntConfiguration("AlertMail:ResendIntervalSeconds", 600), 1, 3600);
+            var failureAge = nowUtc - _sqlWriteFailureStartedAtUtc.Value;
+            if (failureAge.TotalSeconds < thresholdSeconds)
+            {
+                return;
+            }
+
+            if (_sqlWriteFailureAlertActive && nowUtc - _lastSqlWriteFailureAlertSentAtUtc < TimeSpan.FromSeconds(resendIntervalSeconds))
+            {
+                return;
+            }
+
+            try
+            {
+                await _sqlWriteAlertMailer.SendFailureAsync(
+                    serviceName,
+                    snapshot.PendingSqlWriteCount,
+                    snapshot.ConsecutiveSqlWriteErrorCount,
+                    failureAge,
+                    cancellationToken).ConfigureAwait(false);
+
+                _sqlWriteFailureAlertActive = true;
+                _lastSqlWriteFailureAlertSentAtUtc = nowUtc;
+
+                _logger.LogWarning(
+                    "SQL write failure mail sent. Pending={PendingCount} ConsecutiveSqlErrors={ConsecutiveSqlErrors} FailureAgeSeconds={FailureAgeSeconds}",
+                    snapshot.PendingSqlWriteCount,
+                    snapshot.ConsecutiveSqlWriteErrorCount,
+                    (int)failureAge.TotalSeconds);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to send SQL write failure mail.");
+            }
+        }
+
+        private int GetIntConfiguration(string key, int defaultValue)
+        {
+            var raw = _configuration[key];
+            return int.TryParse(raw, out var parsed) ? parsed : defaultValue;
         }
     }
 }

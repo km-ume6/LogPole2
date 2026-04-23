@@ -15,6 +15,7 @@ namespace LP2DTP.Common.Services
         private readonly ConcurrentDictionary<string, IPollingWorker> _workers = new();
         private readonly ConcurrentDictionary<IPollingWorker, bool> _initialCycleCompletionStates = new();
         private readonly ConcurrentQueue<PollingDataReceivedEventArgs> _pendingSqlWrites = new();
+        private readonly PollingSqlWriteSpoolStore _spoolStore = new();
         private const int MaxPendingSqlWrites = 20000;
         private long _currentCycleTimestampBinary = DateTime.Now.ToBinary();
         private bool _disposed;
@@ -153,6 +154,7 @@ namespace LP2DTP.Common.Services
             }
 
             LogMessage($"[Manager] StartAllAsync: Starting {_workers.Count} workers");
+            RestorePendingSqlWritesFromSpool();
             Interlocked.Exchange(ref _initialCycleCompletedAtUtcBinary, 0);
             Interlocked.Exchange(ref _consecutiveSqlWriteErrorCount, 0);
             Interlocked.Exchange(ref _lastSqlWriteErrorUtcBinary, 0);
@@ -199,6 +201,7 @@ namespace LP2DTP.Common.Services
             }
 
             await FlushPendingSqlWritesAsync(CancellationToken.None).ConfigureAwait(false);
+            PersistPendingSqlWritesSnapshot();
             await Task.WhenAll(_workers.Values.Select(w => w.StopAsync())).ConfigureAwait(false);
         }
 
@@ -408,9 +411,19 @@ namespace LP2DTP.Common.Services
             if (IsSqlLoggingEnabled)
             {
                 _pendingSqlWrites.Enqueue(e);
+
+                var dropped = 0;
                 while (_pendingSqlWrites.Count > MaxPendingSqlWrites && _pendingSqlWrites.TryDequeue(out _))
                 {
+                    dropped++;
                 }
+
+                if (dropped > 0)
+                {
+                    LogMessage($"[Manager] Pending SQL queue trimmed. Dropped={dropped} Max={MaxPendingSqlWrites}", "WARN");
+                }
+
+                PersistPendingSqlWritesSnapshot();
             }
             DataReceived?.Invoke(this, e);
         }
@@ -432,12 +445,14 @@ namespace LP2DTP.Common.Services
                 }
             }
 
+            var queueChanged = false;
             while (_pendingSqlWrites.TryPeek(out var data))
             {
                 try
                 {
                     await _sqlLoggingService.WriteAsync(data, cancellationToken).ConfigureAwait(false);
                     _pendingSqlWrites.TryDequeue(out _);
+                    queueChanged = true;
                     Interlocked.Exchange(ref _consecutiveSqlWriteErrorCount, 0);
                     Interlocked.Exchange(ref _lastSqlWriteErrorUtcBinary, 0);
                     Interlocked.Exchange(ref _nextSqlWriteRetryAtUtcBinary, 0);
@@ -459,6 +474,67 @@ namespace LP2DTP.Common.Services
                     OnManagerErrorOccurred(ex, "SQL", $"SQL write failed. Pending={_pendingSqlWrites.Count} RetryAfterSeconds={retryDelaySeconds} Message={ex.Message}");
                     break;
                 }
+            }
+
+            if (queueChanged)
+            {
+                PersistPendingSqlWritesSnapshot();
+            }
+        }
+
+        private void RestorePendingSqlWritesFromSpool()
+        {
+            try
+            {
+                var items = _spoolStore.Load();
+                if (items.Count == 0)
+                {
+                    return;
+                }
+
+                foreach (var item in items)
+                {
+                    _pendingSqlWrites.Enqueue(item);
+                }
+
+                var dropped = 0;
+                while (_pendingSqlWrites.Count > MaxPendingSqlWrites && _pendingSqlWrites.TryDequeue(out _))
+                {
+                    dropped++;
+                }
+
+                if (dropped > 0)
+                {
+                    LogMessage($"[Manager] Restored pending SQL writes with trim. Restored={items.Count} Dropped={dropped} Max={MaxPendingSqlWrites}", "WARN");
+                }
+                else
+                {
+                    LogMessage($"[Manager] Restored pending SQL writes from spool. Count={items.Count}");
+                }
+
+                PersistPendingSqlWritesSnapshot();
+            }
+            catch (Exception ex)
+            {
+                LogMessage($"[Manager] Failed to restore SQL spool: {ex.Message}", "WARN");
+            }
+        }
+
+        private void PersistPendingSqlWritesSnapshot()
+        {
+            try
+            {
+                if (_pendingSqlWrites.IsEmpty)
+                {
+                    _spoolStore.Clear();
+                    return;
+                }
+
+                _spoolStore.SaveSnapshot(_pendingSqlWrites);
+            }
+            catch (Exception ex)
+            {
+                LogMessage($"[Manager] Failed to persist SQL spool: {ex.Message}", "WARN");
             }
         }
 

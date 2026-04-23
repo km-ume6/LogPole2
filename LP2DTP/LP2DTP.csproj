@@ -15,7 +15,7 @@
     <Nullable>enable</Nullable>
     <GenerateAppInstallerFile>True</GenerateAppInstallerFile>
     <AppxPackageSigningEnabled>True</AppxPackageSigningEnabled>
-    <PackageCertificateThumbprint>AB8C7ACFA15403E59D6D62CB91C10A79F34D5B3E</PackageCertificateThumbprint>
+    <PackageCertificateThumbprint>A0D8A5B02E70B4F3B180F9883B7B2535C20854BC</PackageCertificateThumbprint>
     <AppxPackageSigningTimestampDigestAlgorithm>SHA256</AppxPackageSigningTimestampDigestAlgorithm>
     <AppxAutoIncrementPackageRevision>True</AppxAutoIncrementPackageRevision>
     <GenerateTestArtifacts>True</GenerateTestArtifacts>
